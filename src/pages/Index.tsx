@@ -10,8 +10,10 @@ import { useNavigate } from 'react-router-dom';
 
 interface Survey {
   idEncuesta: string;
+  idPersona: string;
   nombre: string;
   estadoEncuesta: string;
+  estadoLogico: boolean;
   fechaCreacion: string;
   fechaModificacion: string;
   preguntas: any[];
