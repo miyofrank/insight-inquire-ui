@@ -40,6 +40,7 @@ const Index = () => {
     try {
       setLoading(true);
       const response = await fetch('http://localhost:8000/encuestas/');
+      console.log(response);
       if (response.ok) {
         const data = await response.json();
         setSurveys(data);
