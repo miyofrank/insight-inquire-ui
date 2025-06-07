@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Play, Eye, Settings, BarChart3, Share2 } from 'lucide-react';
+import { ChevronLeft, Play, Eye, Settings, BarChart3, Share2, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuestionPalette } from "@/components/survey/QuestionPalette";
@@ -31,6 +31,7 @@ const SurveyEditor = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -93,6 +94,46 @@ const SurveyEditor = () => {
     } catch (error) {
       console.error('Error saving survey:', error);
       toast.success('Cambios guardados localmente');
+    }
+  };
+
+  const handleSaveAndReturn = async () => {
+    if (!survey) return;
+
+    try {
+      setSaving(true);
+      
+      const surveyData = {
+        idEncuesta: survey.idEncuesta,
+        idPersona: "user_1",
+        nombre: survey.nombre,
+        estadoEncuesta: "Nuevo",
+        estadoLogico: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaModificacion: new Date().toISOString(),
+        preguntas: survey.preguntas
+      };
+
+      const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(surveyData),
+      });
+
+      if (response.ok) {
+        toast.success('Encuesta guardada exitosamente');
+        // Redirect to home page after successful save
+        navigate('/');
+      } else {
+        toast.error('Error al guardar la encuesta');
+      }
+    } catch (error) {
+      console.error('Error saving survey:', error);
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -219,6 +260,18 @@ const SurveyEditor = () => {
                 <Eye className="w-4 h-4 mr-2" />
                 Vista previa
               </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleSaveAndReturn}
+                disabled={saving}
+                className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Guardando...' : 'Guardar'}
+              </Button>
+
               <Button 
                 onClick={() => setShowPublishModal(true)}
                 className="bg-blue-600 hover:bg-blue-700"
