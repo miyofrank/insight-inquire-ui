@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Calendar, MoreVertical } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -42,28 +41,13 @@ const Index = () => {
       if (response.ok) {
         const data = await response.json();
         setSurveys(data);
+      } else {
+        console.error('Error fetching surveys:', response.status);
+        setSurveys([]);
       }
     } catch (error) {
       console.error('Error fetching surveys:', error);
-      // Set mock data for development
-      setSurveys([
-        {
-          idEncuesta: "1",
-          nombre: "Prueba01",
-          estadoEncuesta: "Nuevo",
-          fechaCreacion: "2025-02-21",
-          fechaModificacion: "2025-02-28",
-          preguntas: []
-        },
-        {
-          idEncuesta: "2",
-          nombre: "Net promoter score (encuesta NPS)",
-          estadoEncuesta: "Nuevo",
-          fechaCreacion: "2025-02-21",
-          fechaModificacion: "2025-02-28",
-          preguntas: []
-        }
-      ]);
+      setSurveys([]);
     } finally {
       setLoading(false);
     }
