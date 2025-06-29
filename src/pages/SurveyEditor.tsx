@@ -44,10 +44,26 @@ const SurveyEditor = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/encuestas/${surveyId}`);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:8000/encuestas/${surveyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setSurvey(data);
+      } else if (response.status === 401) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
       } else {
         // Fallback for development
         setSurvey({
@@ -73,6 +89,13 @@ const SurveyEditor = () => {
     if (!survey || !newName.trim()) return;
 
     try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const updatedSurvey = { ...survey, nombre: newName.trim() };
       
       const surveyData = {
@@ -87,6 +110,7 @@ const SurveyEditor = () => {
       const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(surveyData),
@@ -95,6 +119,9 @@ const SurveyEditor = () => {
       if (response.ok) {
         setSurvey(updatedSurvey);
         toast.success('Nombre de la encuesta actualizado');
+      } else if (response.status === 401) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
       } else {
         toast.error('Error al actualizar el nombre');
       }
@@ -134,6 +161,13 @@ const SurveyEditor = () => {
     if (!survey) return;
 
     try {
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const surveyData = {
         ...survey,
         idPersona: "user_1",
@@ -146,6 +180,7 @@ const SurveyEditor = () => {
       const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(surveyData),
@@ -153,6 +188,9 @@ const SurveyEditor = () => {
 
       if (response.ok) {
         toast.success('Encuesta guardada exitosamente');
+      } else if (response.status === 401) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error saving survey:', error);
@@ -165,6 +203,12 @@ const SurveyEditor = () => {
 
     try {
       setSaving(true);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
       
       const surveyData = {
         idEncuesta: survey.idEncuesta,
@@ -180,6 +224,7 @@ const SurveyEditor = () => {
       const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(surveyData),
@@ -187,8 +232,10 @@ const SurveyEditor = () => {
 
       if (response.ok) {
         toast.success('Encuesta guardada exitosamente');
-        // Redirect to home page after successful save
         navigate('/');
+      } else if (response.status === 401) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        navigate('/login');
       } else {
         toast.error('Error al guardar la encuesta');
       }

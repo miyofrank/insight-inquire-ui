@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, MoreVertical, BarChart2 } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, MoreVertical, BarChart2, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateSurveyModal } from "@/components/survey/CreateSurveyModal";
 import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner";
 
 interface Survey {
   idEncuesta: string;
@@ -26,34 +27,73 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchSurveys();
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchSurveys();
+    }
+  }, [user]);
 
   useEffect(() => {
     filterSurveys();
   }, [surveys, searchTerm, statusFilter]);
 
+  const checkAuth = () => {
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('user');
+    
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  };
+
   const fetchSurveys = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/encuestas/');
-      console.log(response);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch('http://localhost:8000/encuestas/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setSurveys(data);
+      } else if (response.status === 401) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+        handleLogout();
       } else {
         console.error('Error fetching surveys:', response.status);
+        toast.error('Error al cargar las encuestas');
         setSurveys([]);
       }
     } catch (error) {
       console.error('Error fetching surveys:', error);
+      toast.error('Error de conexión con el servidor');
       setSurveys([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   const filterSurveys = () => {
@@ -111,13 +151,28 @@ const Index = () => {
                 />
               </div>
             </div>
-            <Button 
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Crear encuesta
-            </Button>
+            <div className="flex items-center space-x-4">
+              {user && (
+                <span className="text-sm text-gray-600">
+                  Bienvenido, {user.name || user.email}
+                </span>
+              )}
+              <Button 
+                onClick={() => setShowCreateModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Crear encuesta
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar sesión
+              </Button>
+            </div>
           </div>
         </div>
       </div>
