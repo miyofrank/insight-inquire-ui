@@ -26,17 +26,18 @@ export const CreateSurveyModal: React.FC<CreateSurveyModalProps> = ({
       return;
     }
 
+    const now = new Date();
+    const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
     try {
       setLoading(true);
-      
-      const newSurvey = {
+            const newSurvey = {
         idEncuesta: `survey_${Date.now()}`,
         idPersona: "user_1", 
         nombre: "Nueva Encuesta",
         estadoEncuesta: "Nuevo",
         estadoLogico: true,
-        fechaCreacion: new Date().toISOString(),
-        fechaModificacion: new Date().toISOString(),
+        fechaCreacion: formattedDate,
+        fechaModificacion: formattedDate,
         preguntas: []
       };
 
