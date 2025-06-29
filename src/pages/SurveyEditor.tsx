@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Play, Eye, Settings, BarChart3, Share2, Save } from 'lucide-react';
+import { ChevronLeft, Play, Eye, Settings, BarChart3, Share2, Save, Edit2, Check, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuestionPalette } from "@/components/survey/QuestionPalette";
 import { SurveyCanvas } from "@/components/survey/SurveyCanvas";
@@ -32,6 +32,8 @@ const SurveyEditor = () => {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -64,6 +66,67 @@ const SurveyEditor = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateSurveyName = async (newName: string) => {
+    if (!survey || !newName.trim()) return;
+
+    try {
+      const updatedSurvey = { ...survey, nombre: newName.trim() };
+      
+      const surveyData = {
+        ...updatedSurvey,
+        idPersona: "user_1",
+        estadoEncuesta: "Nuevo",
+        estadoLogico: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaModificacion: new Date().toISOString(),
+      };
+
+      const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(surveyData),
+      });
+
+      if (response.ok) {
+        setSurvey(updatedSurvey);
+        toast.success('Nombre de la encuesta actualizado');
+      } else {
+        toast.error('Error al actualizar el nombre');
+      }
+    } catch (error) {
+      console.error('Error updating survey name:', error);
+      toast.error('Error al conectar con el servidor');
+    }
+  };
+
+  const handleNameEdit = () => {
+    if (!survey) return;
+    setEditedName(survey.nombre);
+    setIsEditingName(true);
+  };
+
+  const handleNameSave = () => {
+    if (editedName.trim() && editedName !== survey?.nombre) {
+      updateSurveyName(editedName);
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameCancel = () => {
+    setEditedName('');
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      handleNameCancel();
     }
   };
 
@@ -233,7 +296,45 @@ const SurveyEditor = () => {
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">e</span>
                 </div>
-                <span className="text-lg font-semibold text-gray-900">{survey.nombre}</span>
+                {isEditingName ? (
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      onKeyDown={handleNameKeyPress}
+                      className="text-lg font-semibold"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleNameSave}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleNameCancel}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 group">
+                    <span className="text-lg font-semibold text-gray-900">{survey.nombre}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleNameEdit}
+                      className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-gray-700"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
