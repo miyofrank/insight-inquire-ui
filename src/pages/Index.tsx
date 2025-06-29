@@ -110,7 +110,6 @@ const Index = () => {
                   className="w-full h-auto object-contain"
                 />
               </div>
-              <span className="text-xl font-semibold text-gray-900">Eficientis encuestas</span>
             </div>
             <Button 
               onClick={() => setShowCreateModal(true)}
