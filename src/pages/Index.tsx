@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Calendar, MoreVertical } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, MoreVertical, BarChart2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -104,10 +104,14 @@ const Index = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">e</span>
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                  <img
+                    src="https://eficientis.com/wp-content/uploads/2024/03/image-18.webp" // Reemplaza con tu URL real
+                    alt="icono"
+                    className="w-5 h-5"
+                  />
                 </div>
-                <span className="text-xl font-semibold text-gray-900">Proyectos</span>
+                <span className="text-xl font-semibold text-gray-900">Eficientis encuestas</span>
               </div>
             </div>
             <Button 
