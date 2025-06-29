@@ -9,6 +9,8 @@ import { SurveyCanvas } from "@/components/survey/SurveyCanvas";
 import { QuestionEditor } from "@/components/survey/QuestionEditor";
 import { PublishModal } from "@/components/survey/PublishModal";
 import { toast } from "sonner";
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface Question {
   idPregunta: string;
@@ -36,10 +38,31 @@ const SurveyEditor = () => {
   const [editedName, setEditedName] = useState('');
 
   useEffect(() => {
+    checkAuth();
     if (id) {
       fetchSurvey(id);
     }
   }, [id]);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+  };
+
+  const handleAuthError = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    navigate('/login');
+  };
 
   const fetchSurvey = async (surveyId: string) => {
     try {
@@ -62,8 +85,7 @@ const SurveyEditor = () => {
         const data = await response.json();
         setSurvey(data);
       } else if (response.status === 401) {
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        navigate('/login');
+        handleAuthError();
       } else {
         // Fallback for development
         setSurvey({
@@ -120,8 +142,7 @@ const SurveyEditor = () => {
         setSurvey(updatedSurvey);
         toast.success('Nombre de la encuesta actualizado');
       } else if (response.status === 401) {
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        navigate('/login');
+        handleAuthError();
       } else {
         toast.error('Error al actualizar el nombre');
       }
@@ -189,8 +210,7 @@ const SurveyEditor = () => {
       if (response.ok) {
         toast.success('Encuesta guardada exitosamente');
       } else if (response.status === 401) {
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        navigate('/login');
+        handleAuthError();
       }
     } catch (error) {
       console.error('Error saving survey:', error);
@@ -234,8 +254,7 @@ const SurveyEditor = () => {
         toast.success('Encuesta guardada exitosamente');
         navigate('/');
       } else if (response.status === 401) {
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        navigate('/login');
+        handleAuthError();
       } else {
         toast.error('Error al guardar la encuesta');
       }

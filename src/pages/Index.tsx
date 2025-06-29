@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { CreateSurveyModal } from "@/components/survey/CreateSurveyModal";
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface Survey {
   idEncuesta: string;
@@ -90,10 +92,24 @@ const Index = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Cerrar sesión en Firebase
+      await signOut(auth);
+      
+      // Limpiar localStorage
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      
+      toast.success('Sesión cerrada correctamente');
+      navigate('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Aún así limpiar el localStorage y redirigir
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      navigate('/login');
+    }
   };
 
   const filterSurveys = () => {

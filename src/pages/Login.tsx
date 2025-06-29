@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,34 +28,58 @@ const Login = () => {
     setLoading(true);
     
     try {
-      // Aquí simularemos la autenticación con Firebase
-      // En un entorno real, usarías Firebase Auth SDK
+      // Autenticar con Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Obtener el ID token
+      const idToken = await user.getIdToken();
+      
+      // Enviar token al backend para validación y obtener datos del usuario
       const response = await fetch('http://localhost:8000/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
-          email,
-          password
+          token: idToken
         }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Guardar el token en localStorage
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        const userData = await response.json();
+        
+        // Guardar el token y datos del usuario
+        localStorage.setItem('authToken', idToken);
+        localStorage.setItem('user', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName || userData.name || user.email,
+          ...userData
+        }));
         
         toast.success('¡Bienvenido!');
         navigate('/');
       } else {
         const errorData = await response.json();
-        toast.error(errorData.detail || 'Error al iniciar sesión');
+        toast.error(errorData.detail || 'Error al validar con el servidor');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error de login:', error);
-      toast.error('Error de conexión con el servidor');
+      
+      // Manejar errores específicos de Firebase
+      if (error.code === 'auth/user-not-found') {
+        toast.error('Usuario no encontrado');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Contraseña incorrecta');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Email inválido');
+      } else if (error.code === 'auth/too-many-requests') {
+        toast.error('Demasiados intentos fallidos. Intenta más tarde');
+      } else {
+        toast.error('Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
