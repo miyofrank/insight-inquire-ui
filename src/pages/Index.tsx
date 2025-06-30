@@ -22,6 +22,16 @@ interface Survey {
   preguntas: any[];
 }
 
+const formatDate = (isoString: string) => {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
 const Index = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [filteredSurveys, setFilteredSurveys] = useState<Survey[]>([]);
@@ -284,10 +294,10 @@ const Index = () => {
                     <span className="text-sm text-gray-600">Yo</span>
                   </div>
                   <div className="col-span-1">
-                    <span className="text-sm text-gray-600">{survey.fechaModificacion}</span>
+                    <span className="text-sm text-gray-600">{formatDate(survey.fechaModificacion)}</span>
                   </div>
                   <div className="col-span-1">
-                    <span className="text-sm text-gray-600">{survey.fechaCreacion}</span>
+                    <span className="text-sm text-gray-600">{formatDate(survey.fechaCreacion)}</span>
                   </div>
                 </div>
               </div>

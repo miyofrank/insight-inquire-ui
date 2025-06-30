@@ -27,7 +27,7 @@ export const CreateSurveyModal: React.FC<CreateSurveyModalProps> = ({
     }
 
     const now = new Date();
-    const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
+    const formattedDate = now.toISOString(); // "2025-06-29T22:11:42.123Z"
     try {
       setLoading(true);
             const newSurvey = {
@@ -40,11 +40,12 @@ export const CreateSurveyModal: React.FC<CreateSurveyModalProps> = ({
         fechaModificacion: formattedDate,
         preguntas: []
       };
-
+      const token = localStorage.getItem("authToken");
       const response = await fetch('http://localhost:8000/encuestas/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(newSurvey),
       });

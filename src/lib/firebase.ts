@@ -9,8 +9,8 @@ const firebaseConfig = {
   projectId: "projectsurvey-eedeb",
   storageBucket: "projectsurvey-eedeb.firebasestorage.app",
   messagingSenderId: "433405392246",
-  appId: "1:433405392246:web:205187436f7de8637ab657",
-  measurementId: "G-V13W6W1WTH"
+  appId: "1:433405392246:web:dac7db6893b0a9037ab657",
+  measurementId: "G-GZH1Q4KYLX"
 };
 
 const app = initializeApp(firebaseConfig);
