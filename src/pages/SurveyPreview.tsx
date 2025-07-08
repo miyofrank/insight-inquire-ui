@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Share2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { SurveyResponseForm } from "@/components/survey/SurveyResponseForm";
+import { PublicSurvey } from "@/components/survey/PublicSurveyForm";
 
 interface Question {
   idPregunta: string;
@@ -34,12 +34,27 @@ const SurveyPreview = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setSurvey(data);
+      } else if (response.status === 401) {
+        navigate('/login');
       } else {
-        // Mock data for development
+        // Fallback for development
         setSurvey({
           idEncuesta: surveyId,
           nombre: "Mi Formulario",
@@ -73,6 +88,12 @@ const SurveyPreview = () => {
       }
     } catch (error) {
       console.error('Error fetching survey:', error);
+      // Fallback for development
+      setSurvey({
+        idEncuesta: surveyId,
+        nombre: "Mi Formulario",
+        preguntas: []
+      });
     } finally {
       setLoading(false);
     }
@@ -116,38 +137,25 @@ const SurveyPreview = () => {
                 className="text-gray-600 hover:text-gray-900"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
+                Volver al Editor
               </Button>
-              <span className="text-lg font-medium text-gray-900">
-                Prueba tu encuesta. Las respuestas no se guardan en la vista previa.
-              </span>
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded">
+                <strong>Vista Previa:</strong> Esta es una vista previa de la encuesta. Las respuestas no se guardan.
+              </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                Preview
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Share2 className="w-4 h-4 mr-2" />
-                Publicar
+              <Button variant="outline" size="sm" className="bg-blue-50 text-blue-600 border-blue-200">
+                Vista Previa
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-white px-6 py-2 border-b border-gray-200">
-        <Progress value={100} className="h-2" />
-        <p className="text-right text-sm text-gray-600 mt-1">100%</p>
-      </div>
-
       {/* Survey Content */}
-      <div className="max-w-2xl mx-auto py-8 px-4">
-        <SurveyResponseForm 
-          survey={survey} 
-          isPreview={true}
-          onSubmit={() => {}}
-        />
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <PublicSurvey surveyId={survey.idEncuesta} isPreview={true} />
       </div>
     </div>
   );
