@@ -35,12 +35,11 @@ const Login = () => {
       // Obtener el ID token
       const idToken = await user.getIdToken();
       
-      // Enviar token al backend para validación y obtener datos del usuario
+      // Enviar token al backend para validación
       const response = await fetch('https://backend-survey-phb2.onrender.com/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({
           token: idToken

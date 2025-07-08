@@ -7,13 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { toast } from "sonner";
 
 interface AnalyticsData {
-  nps: {
+  nps?: {
     score: number;
-    detractors: number;
-    passives: number;
-    promoters: number;
+    detractores: number;
+    pasivos: number;
+    promotores: number;
     totalResponses: number;
   };
   questionStats: Array<{
@@ -36,16 +39,42 @@ const SurveyAnalytics = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkAuth();
     if (id) {
       fetchAnalytics(id);
     }
   }, [id]);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+  };
+
+  const handleAuthError = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    navigate('/login');
+  };
 
   const fetchAnalytics = async (surveyId: string) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
       
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       // Obtener datos de la encuesta
       const surveyResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`, {
         headers: {
@@ -57,48 +86,104 @@ const SurveyAnalytics = () => {
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
         setSurvey(surveyData);
+      } else if (surveyResponse.status === 401) {
+        handleAuthError();
+        return;
       }
 
-      // Intentar obtener analytics del nuevo endpoint
-      const analyticsResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/resultados/resumen`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (analyticsResponse.ok) {
-        const analyticsData = await analyticsResponse.json();
-        setAnalytics(analyticsData);
-      } else {
-        // Crear datos mock si no existe el endpoint
-        setAnalytics({
-          nps: {
-            score: 0,
-            detractors: 5,
-            passives: 5,
-            promoters: 5,
-            totalResponses: 15
+      // Intentar obtener analytics del endpoint de resumen
+      try {
+        const analyticsResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/resultados/resumen`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
-          questionStats: [
-            {
-              idPregunta: "q1",
-              texto: "¿Qué tan probable es que recomiende nuestra empresa?",
-              tipo: "nps",
-              responses: [
-                { value: "Detractores (0-6)", count: 5, percentage: 33.3 },
-                { value: "Pasivos (7-8)", count: 5, percentage: 33.3 },
-                { value: "Promotores (9-10)", count: 5, percentage: 33.3 }
-              ]
-            }
-          ]
         });
+
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          setAnalytics(formatAnalyticsData(analyticsData));
+        } else if (analyticsResponse.status === 401) {
+          handleAuthError();
+          return;
+        } else {
+          // Datos mock si no hay datos reales
+          setAnalytics(getMockAnalyticsData());
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        setAnalytics(getMockAnalyticsData());
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      toast.error('Error al cargar los análisis');
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatAnalyticsData = (data: any): AnalyticsData => {
+    // Formatear datos del backend al formato esperado
+    const formatted: AnalyticsData = {
+      questionStats: []
+    };
+
+    if (data.nps) {
+      formatted.nps = {
+        score: data.nps.score,
+        detractores: data.nps.detractores,
+        pasivos: data.nps.pasivos,
+        promotores: data.nps.promotores,
+        totalResponses: data.nps.detractores + data.nps.pasivos + data.nps.promotores
+      };
+    }
+
+    // Convertir otras estadísticas de preguntas
+    Object.keys(data).forEach(key => {
+      if (key !== 'nps' && data[key]) {
+        const questionData = data[key];
+        if (questionData.conteo) {
+          const responses = Object.entries(questionData.conteo).map(([value, count]) => ({
+            value: value as string,
+            count: count as number,
+            percentage: ((count as number) / questionData.total) * 100
+          }));
+
+          formatted.questionStats.push({
+            idPregunta: key,
+            texto: `Pregunta ${key}`,
+            tipo: 'multiple',
+            responses
+          });
+        }
+      }
+    });
+
+    return formatted;
+  };
+
+  const getMockAnalyticsData = (): AnalyticsData => {
+    return {
+      nps: {
+        score: 0,
+        detractores: 5,
+        pasivos: 5,
+        promotores: 5,
+        totalResponses: 15
+      },
+      questionStats: [
+        {
+          idPregunta: "q1",
+          texto: "¿Qué tan probable es que recomiende nuestra empresa?",
+          tipo: "nps",
+          responses: [
+            { value: "Detractores (0-6)", count: 5, percentage: 33.3 },
+            { value: "Pasivos (7-8)", count: 5, percentage: 33.3 },
+            { value: "Promotores (9-10)", count: 5, percentage: 33.3 }
+          ]
+        }
+      ]
+    };
   };
 
   const NPSGaugeChart = ({ score }: { score: number }) => {
@@ -183,7 +268,7 @@ const SurveyAnalytics = () => {
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            <span>Respuestas totales: <strong>{analytics?.nps.totalResponses || 15}</strong></span>
+            <span>Respuestas totales: <strong>{analytics?.nps?.totalResponses || 0}</strong></span>
             <span className="ml-4">Descartados: <strong>0</strong></span>
             <span className="ml-4">Filtros de coincidencia: <strong>5</strong></span>
           </div>
@@ -192,152 +277,103 @@ const SurveyAnalytics = () => {
         {/* Grid de gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* NPS Card */}
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                1. ¿Qué tan probable es que recomiende nuestra empresa a un colega o amigo?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-6">
-                <NPSGaugeChart score={analytics?.nps.score || 0} />
-                <p className="text-sm text-gray-500 mt-2">Net Promoter Score (NPS)</p>
-              </div>
-              
-              <div className="flex justify-center space-x-6 mb-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full mb-1">
-                    <span className="text-red-600 text-xs font-bold">D</span>
-                  </div>
-                  <p className="text-xs text-gray-600">Detractores</p>
-                  <p className="text-sm font-bold">{analytics?.nps.detractors || 5} (33.3%)</p>
+          {analytics?.nps && (
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Net Promoter Score (NPS)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center mb-6">
+                  <NPSGaugeChart score={analytics.nps.score} />
+                  <p className="text-sm text-gray-500 mt-2">Net Promoter Score (NPS)</p>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full mb-1">
-                    <span className="text-yellow-600 text-xs font-bold">P</span>
+                
+                <div className="flex justify-center space-x-6 mb-4">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full mb-1">
+                      <span className="text-red-600 text-xs font-bold">D</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Detractores</p>
+                    <p className="text-sm font-bold">{analytics.nps.detractores} ({((analytics.nps.detractores / analytics.nps.totalResponses) * 100).toFixed(1)}%)</p>
                   </div>
-                  <p className="text-xs text-gray-600">Pasivos</p>
-                  <p className="text-sm font-bold">{analytics?.nps.passives || 5} (33.3%)</p>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full mb-1">
-                    <span className="text-green-600 text-xs font-bold">P</span>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full mb-1">
+                      <span className="text-yellow-600 text-xs font-bold">P</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Pasivos</p>
+                    <p className="text-sm font-bold">{analytics.nps.pasivos} ({((analytics.nps.pasivos / analytics.nps.totalResponses) * 100).toFixed(1)}%)</p>
                   </div>
-                  <p className="text-xs text-gray-600">Promotores</p>
-                  <p className="text-sm font-bold">{analytics?.nps.promoters || 5} (33.3%)</p>
+                  <div className="text-center">
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full mb-1">
+                      <span className="text-green-600 text-xs font-bold">P</span>
+                    </div>
+                    <p className="text-xs text-gray-600">Promotores</p>
+                    <p className="text-sm font-bold">{analytics.nps.promotores} ({((analytics.nps.promotores / analytics.nps.totalResponses) * 100).toFixed(1)}%)</p>
+                  </div>
                 </div>
-              </div>
 
-              <Button variant="link" className="w-full text-blue-600">
-                <Settings className="w-4 h-4 mr-2" />
-                Configuración detallada del gráfico
-              </Button>
-            </CardContent>
-          </Card>
+                <Button variant="link" className="w-full text-blue-600">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configuración detallada del gráfico
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Tabla de respuestas */}
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                2. ¿Podría explicar un poco más sobre su calificación en la pregunta anterior?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm font-medium">Número</span>
-                  <span className="text-sm font-medium">Respuesta</span>
-                  <span className="text-sm font-medium">Ratio</span>
-                </div>
-                {[
-                  "El servicio no cumplió mis expectativas.",
-                  "Hubo problemas con la entrega y no se resolvieron bien.",
-                  "Mala atención al cliente, no me ayudaron cuando lo necesité.",
-                  "El producto es bueno, pero el soporte deja mucho que desear.",
-                  "No fue una experiencia terrible, pero tampoco la recomendaría."
-                ].map((response, index) => (
-                  <div key={index} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-gray-600">{index + 1}</span>
-                    <span className="flex-1 px-4 truncate">{response}</span>
-                    <span className="text-gray-600">6,7%</span>
+          {/* Otras estadísticas de preguntas */}
+          {analytics?.questionStats.map((stat, index) => (
+            <Card key={stat.idPregunta} className="col-span-1">
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  {stat.texto}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-sm font-medium">Respuesta</span>
+                    <span className="text-sm font-medium">Cantidad</span>
+                    <span className="text-sm font-medium">%</span>
                   </div>
-                ))}
-              </div>
-              
-              <Button variant="link" className="w-full text-blue-600 mt-4">
-                <Settings className="w-4 h-4 mr-2" />
-                Configuración detallada del gráfico
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Gráfico de radar */}
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                3. ¿Cómo calificaría a nuestra empresa en los siguientes aspectos?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={[
-                    { subject: 'Red de oficinas', A: 80, fullMark: 100 },
-                    { subject: 'Calidad del producto', A: 90, fullMark: 100 },
-                    { subject: 'Relación calidad-precio', A: 70, fullMark: 100 },
-                    { subject: 'Experiencia de compra', A: 85, fullMark: 100 },
-                    { subject: 'Atención al cliente', A: 75, fullMark: 100 },
-                  ]}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                    <Radar name="Calificación" dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              
-              <Button variant="link" className="w-full text-blue-600">
-                <Settings className="w-4 h-4 mr-2" />
-                Configuración detallada del gráfico
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Cuarta pregunta */}
-          <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                4. ¿Hay algo que pueda mejorar aún más su experiencia como cliente?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm font-medium">Número</span>
-                  <span className="text-sm font-medium">Respuesta</span>
-                  <span className="text-sm font-medium">Ratio</span>
+                  {stat.responses.map((response, idx) => (
+                    <div key={idx} className="flex items-center justify-between py-2 text-sm">
+                      <span className="flex-1 truncate">{response.value}</span>
+                      <span className="px-4">{response.count}</span>
+                      <span className="text-gray-600">{response.percentage.toFixed(1)}%</span>
+                    </div>
+                  ))}
                 </div>
-                {[
-                  "Entrega más rápida, urgente.",
-                  "Más opciones de pago.",
-                  "Atención al cliente 24/7",
-                  "Descuentos para clientes frecuentes",
-                  "Descripciones de productos detalladas"
-                ].map((response, index) => (
-                  <div key={index} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-gray-600">{index + 1}</span>
-                    <span className="flex-1 px-4 truncate">{response}</span>
-                    <span className="text-gray-600">6,7%</span>
-                  </div>
-                ))}
-              </div>
-              
-              <Button variant="link" className="w-full text-blue-600 mt-4">
-                <Settings className="w-4 h-4 mr-2" />
-                Configuración detallada del gráfico
-              </Button>
-            </CardContent>
-          </Card>
+                
+                <Button variant="link" className="w-full text-blue-600 mt-4">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configuración detallada del gráfico
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Si no hay datos, mostrar mensaje */}
+          {(!analytics || analytics.questionStats.length === 0) && (
+            <Card className="col-span-full">
+              <CardContent className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <BarChart3 className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No hay datos de análisis</h3>
+                <p className="text-gray-500 mb-4">
+                  Cuando las personas respondan tu encuesta, verás los análisis aquí.
+                </p>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => window.open(`/survey/${id}`, '_blank')}
+                >
+                  Compartir Encuesta
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

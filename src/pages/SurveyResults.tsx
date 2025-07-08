@@ -4,6 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Download, RefreshCcw, Search, Filter, Calendar } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { toast } from "sonner";
 
 interface Response {
   idRespuesta: string;
@@ -34,15 +37,41 @@ const SurveyResults = () => {
   const [activeSection, setActiveSection] = useState('individual');
 
   useEffect(() => {
+    checkAuth();
     if (id) {
       fetchData(id);
     }
   }, [id]);
 
+  const checkAuth = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+  };
+
+  const handleAuthError = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    navigate('/login');
+  };
+
   const fetchData = async (surveyId: string) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
       
       // Fetch survey
       const surveyResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`, {
@@ -51,47 +80,36 @@ const SurveyResults = () => {
           'Content-Type': 'application/json',
         },
       });
+      
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
         setSurvey(surveyData);
+      } else if (surveyResponse.status === 401) {
+        handleAuthError();
+        return;
       }
 
-      // Fetch responses
+      // Fetch responses using the correct endpoint
       const responsesResponse = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
+      
       if (responsesResponse.ok) {
         const responsesData = await responsesResponse.json();
         setResponses(responsesData);
+      } else if (responsesResponse.status === 401) {
+        handleAuthError();
+        return;
       } else {
-        // Mock data for development
-        setResponses([
-          {
-            idRespuesta: "1",
-            idEncuesta: surveyId,
-            respuestas: [],
-            fechaRespuesta: "2025-02-21T14:10:00"
-          }
-        ]);
+        // Si no hay respuestas, inicializar array vacío
+        setResponses([]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Mock data for development
-      setSurvey({
-        idEncuesta: surveyId,
-        nombre: "Mi Formulario",
-        preguntas: [
-          {
-            idPregunta: "q1",
-            texto: "¿Cuál es la principal prioridad en la atención al cliente en un negocio exitoso?",
-            tipo: "texto-largo"
-          }
-        ]
-      });
-      setResponses([]);
+      toast.error('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
@@ -169,7 +187,10 @@ const SurveyResults = () => {
               >
                 Preview
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => window.open(`/survey/${survey.idEncuesta}`, '_blank')}
+              >
                 Publicar
               </Button>
             </div>
@@ -263,81 +284,80 @@ const SurveyResults = () => {
                 </div>
               </div>
 
-              {/* Questions Header */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-                <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50 border-b border-gray-200">
-                  <div className="col-span-1 flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300" />
+              {/* Responses Content */}
+              {responses.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
                   </div>
-                  {survey.preguntas.slice(0, 4).map((question, index) => (
-                    <div key={question.idPregunta} className="col-span-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">{index + 1}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {question.texto.substring(0, 30)}...
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {question.tipo.replace('-', ' ')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="col-span-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">5</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          ¿Qué estrategias es más efectiva para mejorar la satisfacción del cliente?
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Selección múltiple
-                        </p>
-                      </div>
-                    </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No hay respuestas aún</h3>
+                  <p className="text-gray-500 mb-4">
+                    Cuando las personas respondan tu encuesta, verás sus respuestas aquí.
+                  </p>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => window.open(`/survey/${survey.idEncuesta}`, '_blank')}
+                  >
+                    Compartir Encuesta
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" className="rounded border-gray-300" />
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            ID
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Fecha
+                          </th>
+                          {survey.preguntas.slice(0, 3).map((question, index) => (
+                            <th key={question.idPregunta} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              {question.texto.substring(0, 30)}...
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {responses.map((response, index) => (
+                          <tr key={response.idRespuesta} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input type="checkbox" className="rounded border-gray-300" />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              #{index + 1}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(response.fechaRespuesta).toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            {survey.preguntas.slice(0, 3).map((question) => {
+                              const respuesta = response.respuestas.find(r => r.idPregunta === question.idPregunta);
+                              return (
+                                <td key={question.idPregunta} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  {respuesta?.idItem || '-'}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-
-                {/* Response Rows */}
-                <div className="divide-y divide-gray-200">
-                  {Array.from({ length: 9 }, (_, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50">
-                      <div className="col-span-1 flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300" />
-                      </div>
-                      <div className="col-span-1 text-sm text-gray-600">
-                        #{i + 1}
-                      </div>
-                      <div className="col-span-1 text-sm text-gray-600">
-                        febrero 21, 2025 14:10
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-900">
-                        {i % 3 === 0 ? 'Escuchar al cliente' : 
-                         i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable'}
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-900">
-                        {i % 3 === 0 ? 'Escuchar que es lo que quieren los clientes' : 
-                         i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable con todos para tener mejor servicio'}
-                      </div>
-                      <div className="col-span-2 text-sm text-gray-900">
-                        {i % 3 === 0 ? 'Precios bajos' : 
-                         i % 3 === 1 ? 'Precios bajos' : 'Atención rápida y eficiente'}
-                      </div>
-                      <div className="col-span-1 text-sm text-gray-900">
-                        {i % 3 === 0 ? 'Encuestas de satisfacción' : 
-                         i % 3 === 1 ? 'Capacitación del personal' : 
-                         i % 3 === 2 ? 'Programas de fidelización' : 
-                         'Mejora en tiempos de respuesta'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}

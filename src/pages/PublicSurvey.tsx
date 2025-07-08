@@ -40,17 +40,20 @@ const PublicSurvey = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+      
+      // Intentar primero el endpoint público
+      let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+      
+      if (!response.ok) {
+        // Fallback al endpoint normal si el público no existe
+        response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+      }
+      
       if (response.ok) {
         const data = await response.json();
         setSurvey(data);
       } else {
-        // Fallback si no existe el endpoint público
-        const fallbackResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
-        if (fallbackResponse.ok) {
-          const data = await fallbackResponse.json();
-          setSurvey(data);
-        }
+        toast.error('Encuesta no encontrada o no disponible públicamente');
       }
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -71,20 +74,24 @@ const PublicSurvey = () => {
     e.preventDefault();
     if (!survey) return;
 
+    // Validar que todas las preguntas requeridas tengan respuesta
+    const unansweredQuestions = survey.preguntas.filter(q => !responses[q.idPregunta]);
+    if (unansweredQuestions.length > 0) {
+      toast.error('Por favor responde todas las preguntas');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const responseData = {
-        idRespuesta: `resp_${Date.now()}`,
-        idEncuesta: survey.idEncuesta,
-        idPersona: "anonymous",
-        respuestas: Object.entries(responses).map(([questionId, value]) => ({
-          idPregunta: questionId,
-          idItem: typeof value === 'string' ? value : Array.isArray(value) ? value.join(',') : value?.toString() || ''
-        })),
-        fechaRespuesta: new Date().toISOString()
+        respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
+          preguntaId,
+          valor: Array.isArray(valor) ? valor : valor?.toString() || ''
+        }))
       };
 
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`, {
+      // Intentar el endpoint público específico primero
+      let response = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,25 +99,34 @@ const PublicSurvey = () => {
         body: JSON.stringify(responseData),
       });
 
-      if (response.ok) {
-        setSubmitted(true);
-        toast.success('¡Respuesta enviada exitosamente!');
-      } else {
-        // Fallback al endpoint existente
-        const fallbackResponse = await fetch('https://backend-survey-phb2.onrender.com/respuestas/', {
+      if (!response.ok) {
+        // Fallback al formato original si el nuevo endpoint no funciona
+        const fallbackData = {
+          idRespuesta: `resp_${Date.now()}`,
+          idEncuesta: survey.idEncuesta,
+          idPersona: "anonymous",
+          respuestas: Object.entries(responses).map(([questionId, value]) => ({
+            idPregunta: questionId,
+            idItem: typeof value === 'string' ? value : Array.isArray(value) ? value.join(',') : value?.toString() || ''
+          })),
+          fechaRespuesta: new Date().toISOString()
+        };
+
+        response = await fetch('https://backend-survey-phb2.onrender.com/respuestas/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(responseData),
+          body: JSON.stringify(fallbackData),
         });
-        
-        if (fallbackResponse.ok) {
-          setSubmitted(true);
-          toast.success('¡Respuesta enviada exitosamente!');
-        } else {
-          toast.error('Error al enviar la respuesta');
-        }
+      }
+      
+      if (response.ok) {
+        setSubmitted(true);
+        toast.success('¡Respuesta enviada exitosamente!');
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.detail || 'Error al enviar la respuesta');
       }
     } catch (error) {
       console.error('Error submitting response:', error);
@@ -137,6 +153,7 @@ const PublicSurvey = () => {
               onChange={(e) => handleInputChange(question.idPregunta, e.target.value)}
               placeholder="Escribe tu respuesta aquí..."
               className="w-full"
+              required
             />
           )}
 
@@ -147,6 +164,7 @@ const PublicSurvey = () => {
               placeholder="Escribe tu respuesta aquí..."
               rows={4}
               className="w-full resize-none"
+              required
             />
           )}
 
@@ -216,6 +234,7 @@ const PublicSurvey = () => {
               value={value}
               onChange={(e) => handleInputChange(question.idPregunta, e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
             >
               <option value="">Selecciona una opción</option>
               {question.items.map((item) => (
