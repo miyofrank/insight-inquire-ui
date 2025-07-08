@@ -91,7 +91,7 @@ const SurveyAnalytics = () => {
         return;
       }
 
-      // Intentar obtener analytics del endpoint de resumen
+      // Obtener resumen de resultados
       try {
         const analyticsResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/resultados/resumen`, {
           headers: {
@@ -123,7 +123,6 @@ const SurveyAnalytics = () => {
   };
 
   const formatAnalyticsData = (data: any): AnalyticsData => {
-    // Formatear datos del backend al formato esperado
     const formatted: AnalyticsData = {
       questionStats: []
     };
@@ -165,11 +164,11 @@ const SurveyAnalytics = () => {
   const getMockAnalyticsData = (): AnalyticsData => {
     return {
       nps: {
-        score: 0,
-        detractores: 5,
-        pasivos: 5,
-        promotores: 5,
-        totalResponses: 15
+        score: 40,
+        detractores: 2,
+        pasivos: 2,
+        promotores: 6,
+        totalResponses: 10
       },
       questionStats: [
         {
@@ -177,9 +176,9 @@ const SurveyAnalytics = () => {
           texto: "¿Qué tan probable es que recomiende nuestra empresa?",
           tipo: "nps",
           responses: [
-            { value: "Detractores (0-6)", count: 5, percentage: 33.3 },
-            { value: "Pasivos (7-8)", count: 5, percentage: 33.3 },
-            { value: "Promotores (9-10)", count: 5, percentage: 33.3 }
+            { value: "Detractores (0-6)", count: 2, percentage: 20 },
+            { value: "Pasivos (7-8)", count: 2, percentage: 20 },
+            { value: "Promotores (9-10)", count: 6, percentage: 60 }
           ]
         }
       ]
@@ -276,7 +275,7 @@ const SurveyAnalytics = () => {
 
         {/* Grid de gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* NPS Card */}
+          {/* Tarjeta NPS */}
           {analytics?.nps && (
             <Card className="col-span-1">
               <CardHeader>
@@ -321,6 +320,32 @@ const SurveyAnalytics = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Tarjeta de Radar */}
+          <Card className="col-span-1">
+            <CardHeader>
+              <CardTitle className="text-lg">
+                Análisis por categorías
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                <div className="text-center text-gray-500">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-2 flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-blue-500 rounded-full relative">
+                      <div className="absolute inset-1 border border-blue-300 rounded-full"></div>
+                    </div>
+                  </div>
+                  <p className="text-sm">Gráfico de Radar</p>
+                </div>
+              </div>
+              
+              <Button variant="link" className="w-full text-blue-600">
+                <Settings className="w-4 h-4 mr-2" />
+                Configuración detallada del gráfico
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Otras estadísticas de preguntas */}
           {analytics?.questionStats.map((stat, index) => (

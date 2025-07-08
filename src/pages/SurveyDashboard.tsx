@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 const SurveyDashboard = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [dashboardName, setDashboardName] = useState("Dashboard 01");
+  const [dashboardName, setDashboardName] = useState("Dashboard Personalizable");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,11 +70,11 @@ const SurveyDashboard = () => {
       {/* Dashboard Content */}
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Widget 1 - NPS */}
+          {/* Widget NPS Mock */}
           <Card className="col-span-1">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">
-                1. ¿Qué tan probable es que recomiende nuestra empresa a un colega o amigo?
+                1. ¿Qué tan probable es que recomiende nuestra empresa?
               </CardTitle>
               <Button variant="ghost" size="sm">
                 <Settings className="w-4 h-4" />
@@ -82,7 +82,7 @@ const SurveyDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-6xl font-bold mb-2">0%</div>
+                <div className="text-6xl font-bold mb-2">40%</div>
                 <p className="text-sm text-gray-500 mb-4">Net Promoter Score (NPS)</p>
                 
                 <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
@@ -92,36 +92,36 @@ const SurveyDashboard = () => {
                 <div className="flex justify-center space-x-4">
                   <div className="text-center">
                     <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mb-1">
-                      <span className="text-red-600 text-xs">5</span>
+                      <span className="text-red-600 text-xs">2</span>
                     </div>
                     <p className="text-xs">Detractores</p>
-                    <p className="text-sm font-bold">(33.3%)</p>
+                    <p className="text-sm font-bold">(20%)</p>
                   </div>
                   <div className="text-center">
                     <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mb-1">
-                      <span className="text-yellow-600 text-xs">5</span>
+                      <span className="text-yellow-600 text-xs">2</span>
                     </div>
                     <p className="text-xs">Pasivos</p>
-                    <p className="text-sm font-bold">(33.3%)</p>
+                    <p className="text-sm font-bold">(20%)</p>
                   </div>
                   <div className="text-center">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-1">
-                      <span className="text-green-600 text-xs">5</span>
+                      <span className="text-green-600 text-xs">6</span>
                     </div>
                     <p className="text-xs">Promotores</p>
-                    <p className="text-sm font-bold">(33.3%)</p>
+                    <p className="text-sm font-bold">(60%)</p>
                   </div>
                 </div>
               </div>
-              <p className="text-center text-xs text-gray-500 mt-4">15 respuestas</p>
+              <p className="text-center text-xs text-gray-500 mt-4">10 respuestas</p>
             </CardContent>
           </Card>
 
-          {/* Widget 2 - Tabla */}
+          {/* Widget Tabla Mock */}
           <Card className="col-span-1">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">
-                2. ¿Podría explicar un poco más sobre su calificación en la pregunta anterior?
+                2. ¿Podría explicar su calificación anterior?
               </CardTitle>
               <Button variant="ghost" size="sm">
                 <Settings className="w-4 h-4" />
@@ -134,23 +134,29 @@ const SurveyDashboard = () => {
                   <span>Respuesta</span>
                   <span>Ratio</span>
                 </div>
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <div key={num} className="grid grid-cols-3 gap-4 py-2 text-sm">
-                    <span>{num}</span>
-                    <span className="truncate">El servicio no cumplió mis expectativas.</span>
-                    <span>6,7%</span>
+                {[
+                  "El servicio superó mis expectativas",
+                  "Excelente atención al cliente",
+                  "Producto de alta calidad",
+                  "Recomendaría a otros",
+                  "Muy satisfecho con la compra"
+                ].map((response, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-4 py-2 text-sm">
+                    <span>{index + 1}</span>
+                    <span className="truncate">{response}</span>
+                    <span>{(20 - index * 2)}%</span>
                   </div>
                 ))}
               </div>
-              <p className="text-center text-xs text-gray-500 mt-4">15 respuestas</p>
+              <p className="text-center text-xs text-gray-500 mt-4">10 respuestas</p>
             </CardContent>
           </Card>
 
-          {/* Widget 3 - Gráfico Radar */}
+          {/* Widget Radar Mock */}
           <Card className="col-span-1">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">
-                3. ¿Cómo calificaría a nuestra empresa en los siguientes aspectos?
+                3. Calificación por aspectos
               </CardTitle>
               <Button variant="ghost" size="sm">
                 <Settings className="w-4 h-4" />
@@ -167,41 +173,7 @@ const SurveyDashboard = () => {
                   <p className="text-sm">Gráfico de Radar</p>
                 </div>
               </div>
-              <p className="text-center text-xs text-gray-500">15 respuestas</p>
-            </CardContent>
-          </Card>
-
-          {/* Widget 4 - Respuestas */}
-          <Card className="col-span-1">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">
-                4. ¿Hay algo que pueda mejorar aún más su experiencia como cliente?
-              </CardTitle>
-              <Button variant="ghost" size="sm">
-                <Settings className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-4 py-2 border-b font-medium text-sm">
-                  <span>Número</span>
-                  <span>Respuesta</span>
-                  <span>Ratio</span>
-                </div>
-                {[
-                  "Entrega más rápida, urgente.",
-                  "Más opciones de pago.",
-                  "Atención al cliente 24/7",
-                  "Descuentos para clientes frecuentes",
-                  "Descripciones de productos detalladas"
-                ].map((response, index) => (
-                  <div key={index} className="grid grid-cols-3 gap-4 py-2 text-sm">
-                    <span>{index + 1}</span>
-                    <span className="truncate">{response}</span>
-                    <span>6,7%</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-center text-xs text-gray-500">10 respuestas</p>
             </CardContent>
           </Card>
 
@@ -209,17 +181,46 @@ const SurveyDashboard = () => {
           <Card className="col-span-1 border-dashed border-2 border-gray-300">
             <CardContent className="flex flex-col items-center justify-center h-64 text-gray-500">
               <Plus className="w-12 h-12 mb-4" />
-              <p className="text-lg font-medium mb-2">Add file</p>
+              <p className="text-lg font-medium mb-2">Añadir Widget</p>
               <Button 
                 variant="outline" 
                 className="border-dashed"
                 onClick={() => {
-                  // Aquí iría la lógica para abrir el modal de agregar widget
-                  console.log('Agregar nuevo widget');
+                  // Modal para seleccionar widget
+                  console.log('Abrir modal para agregar widget');
                 }}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Agregar Widget
+                Seleccionar Pregunta
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Más widgets se pueden agregar aquí */}
+          <Card className="col-span-1 border-dashed border-2 border-gray-300">
+            <CardContent className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <Plus className="w-12 h-12 mb-4" />
+              <p className="text-lg font-medium mb-2">Añadir Widget</p>
+              <Button 
+                variant="outline" 
+                className="border-dashed"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Gráfico de Barras
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 border-dashed border-2 border-gray-300">
+            <CardContent className="flex flex-col items-center justify-center h-64 text-gray-500">
+              <Plus className="w-12 h-12 mb-4" />
+              <p className="text-lg font-medium mb-2">Añadir Widget</p>
+              <Button 
+                variant="outline" 
+                className="border-dashed"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Gráfico Circular
               </Button>
             </CardContent>
           </Card>

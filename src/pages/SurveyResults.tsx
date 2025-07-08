@@ -89,7 +89,7 @@ const SurveyResults = () => {
         return;
       }
 
-      // Fetch responses using the correct endpoint
+      // Fetch responses
       const responsesResponse = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,7 +104,6 @@ const SurveyResults = () => {
         handleAuthError();
         return;
       } else {
-        // Si no hay respuestas, inicializar array vacío
         setResponses([]);
       }
     } catch (error) {
@@ -250,41 +249,44 @@ const SurveyResults = () => {
           </div>
         </div>
 
-        {/* Main Content - Solo mostramos si activeSection es 'individual' */}
+        {/* Main Content - Respuestas Individuales */}
         {activeSection === 'individual' && (
           <div className="flex-1 overflow-y-auto">
             <div className="p-6">
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 mb-4">Respuestas Individuales</h1>
                 
-                {/* Filters */}
+                {/* Controles */}
                 <div className="flex items-center space-x-4 mb-6">
                   <Button variant="outline" size="sm">
                     <Search className="w-4 h-4 mr-2" />
-                    Hide fields
+                    Ocultar campos
                   </Button>
                   <Button variant="outline" size="sm">
                     <RefreshCcw className="w-4 h-4 mr-2" />
-                    Sort
+                    Ordenar
                   </Button>
                   <Button variant="outline" size="sm">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Date range
+                    Rango de fechas
                   </Button>
                   <Button variant="outline" size="sm">
                     <Filter className="w-4 h-4 mr-2" />
-                    Filter
+                    Filtro
                   </Button>
                   <div className="ml-auto flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">{responses.length} Resultados</span>
+                    <span className="text-sm text-gray-600">{responses.length} Respuestas</span>
                     <Button variant="outline" size="sm">
                       <Download className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <RefreshCcw className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               </div>
 
-              {/* Responses Content */}
+              {/* Tabla de respuestas */}
               {responses.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
@@ -313,10 +315,7 @@ const SurveyResults = () => {
                             <input type="checkbox" className="rounded border-gray-300" />
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ID
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Fecha
+                            Fecha de respuesta
                           </th>
                           {survey.preguntas.slice(0, 3).map((question, index) => (
                             <th key={question.idPregunta} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -330,9 +329,6 @@ const SurveyResults = () => {
                           <tr key={response.idRespuesta} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <input type="checkbox" className="rounded border-gray-300" />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              #{index + 1}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(response.fechaRespuesta).toLocaleDateString('es-ES', {

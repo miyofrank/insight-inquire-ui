@@ -30,6 +30,7 @@ const PublicSurvey = () => {
   const [responses, setResponses] = useState<{ [key: string]: any }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isPreview] = useState(false); // Para modo vista previa
 
   useEffect(() => {
     if (id) {
@@ -41,7 +42,7 @@ const PublicSurvey = () => {
     try {
       setLoading(true);
       
-      // Intentar primero el endpoint público
+      // Intentar endpoint público primero
       let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
       
       if (!response.ok) {
@@ -72,9 +73,9 @@ const PublicSurvey = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!survey) return;
+    if (!survey || isPreview) return;
 
-    // Validar que todas las preguntas requeridas tengan respuesta
+    // Validar que todas las preguntas tengan respuesta
     const unansweredQuestions = survey.preguntas.filter(q => !responses[q.idPregunta]);
     if (unansweredQuestions.length > 0) {
       toast.error('Por favor responde todas las preguntas');
@@ -90,36 +91,13 @@ const PublicSurvey = () => {
         }))
       };
 
-      // Intentar el endpoint público específico primero
-      let response = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`, {
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(responseData),
       });
-
-      if (!response.ok) {
-        // Fallback al formato original si el nuevo endpoint no funciona
-        const fallbackData = {
-          idRespuesta: `resp_${Date.now()}`,
-          idEncuesta: survey.idEncuesta,
-          idPersona: "anonymous",
-          respuestas: Object.entries(responses).map(([questionId, value]) => ({
-            idPregunta: questionId,
-            idItem: typeof value === 'string' ? value : Array.isArray(value) ? value.join(',') : value?.toString() || ''
-          })),
-          fechaRespuesta: new Date().toISOString()
-        };
-
-        response = await fetch('https://backend-survey-phb2.onrender.com/respuestas/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(fallbackData),
-        });
-      }
       
       if (response.ok) {
         setSubmitted(true);
@@ -147,6 +125,7 @@ const PublicSurvey = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Texto corto */}
           {question.tipo === 'texto-corto' && (
             <Input
               value={value}
@@ -157,6 +136,7 @@ const PublicSurvey = () => {
             />
           )}
 
+          {/* Texto largo */}
           {question.tipo === 'texto-largo' && (
             <Textarea
               value={value}
@@ -168,6 +148,7 @@ const PublicSurvey = () => {
             />
           )}
 
+          {/* Opción múltiple (una respuesta) */}
           {question.tipo === 'seleccion-multiple' && (
             <RadioGroup
               value={value}
@@ -182,6 +163,7 @@ const PublicSurvey = () => {
             </RadioGroup>
           )}
 
+          {/* Opción múltiple (varias respuestas) */}
           {question.tipo === 'casillas' && (
             <div className="space-y-3">
               {question.items.map((item) => (
@@ -204,11 +186,38 @@ const PublicSurvey = () => {
             </div>
           )}
 
-          {(question.tipo === 'escala' || question.tipo === 'nps') && (
+          {/* Escala del 1 al 10 */}
+          {question.tipo === 'escala' && (
             <div>
               <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
-                <span>Muy improbable</span>
-                <span>Muy probable</span>
+                <span>1 - Muy malo</span>
+                <span>10 - Excelente</span>
+              </div>
+              <div className="flex justify-between">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((scaleValue) => (
+                  <button
+                    key={scaleValue}
+                    type="button"
+                    onClick={() => handleInputChange(question.idPregunta, scaleValue)}
+                    className={`w-10 h-10 rounded-md border-2 text-sm font-medium transition-colors ${
+                      value === scaleValue
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    {scaleValue}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* NPS (0-10) */}
+          {question.tipo === 'nps' && (
+            <div>
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+                <span>0 - Muy improbable</span>
+                <span>10 - Muy probable</span>
               </div>
               <div className="flex justify-between">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((scaleValue) => (
@@ -229,6 +238,7 @@ const PublicSurvey = () => {
             </div>
           )}
 
+          {/* Desplegable */}
           {question.tipo === 'desplegable' && (
             <select
               value={value}
@@ -295,20 +305,27 @@ const PublicSurvey = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{survey.nombre}</h1>
           <p className="text-gray-600">Responde todas las preguntas y envía tu formulario</p>
+          {isPreview && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+              <strong>Modo Vista Previa:</strong> Esta es una vista previa de la encuesta.
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {survey.preguntas.map((question, index) => renderQuestion(question, index))}
           
-          <div className="flex justify-center pt-8">
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md"
-            >
-              {submitting ? 'Enviando...' : 'Enviar Respuestas'}
-            </Button>
-          </div>
+          {!isPreview && (
+            <div className="flex justify-center pt-8">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md"
+              >
+                {submitting ? 'Enviando...' : 'Enviar Respuestas'}
+              </Button>
+            </div>
+          )}
         </form>
       </div>
     </div>
