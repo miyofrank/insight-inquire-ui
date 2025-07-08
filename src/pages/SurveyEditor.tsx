@@ -74,7 +74,7 @@ const SurveyEditor = () => {
         return;
       }
       
-      const response = await fetch(`http://localhost:8000/encuestas/${surveyId}`, {
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ const SurveyEditor = () => {
         fechaModificacion: new Date().toISOString(),
       };
 
-      const response = await fetch(`http://localhost:8000/encuestas/${survey.idEncuesta}`, {
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${survey.idEncuesta}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

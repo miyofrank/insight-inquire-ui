@@ -46,14 +46,14 @@ const SurveyResults = () => {
       setLoading(true);
       
       // Fetch survey
-      const surveyResponse = await fetch(`http://localhost:8000/encuestas/${surveyId}`);
+      const surveyResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
         setSurvey(surveyData);
       }
 
       // Fetch responses
-      const responsesResponse = await fetch(`http://localhost:8000/respuestas/encuesta/${surveyId}`);
+      const responsesResponse = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`);
       if (responsesResponse.ok) {
         const responsesData = await responsesResponse.json();
         setResponses(responsesData);

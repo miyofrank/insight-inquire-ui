@@ -33,7 +33,7 @@ const SurveyResponse = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/encuestas/${surveyId}`);
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
       if (response.ok) {
         const data = await response.json();
         setSurvey(data);
@@ -75,7 +75,7 @@ const SurveyResponse = () => {
         fechaRespuesta: new Date().toISOString()
       };
 
-      const response = await fetch('http://localhost:8000/respuestas/', {
+      const response = await fetch('https://backend-survey-phb2.onrender.com/respuestas/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

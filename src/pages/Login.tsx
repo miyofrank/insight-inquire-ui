@@ -36,7 +36,7 @@ const Login = () => {
       const idToken = await user.getIdToken();
       
       // Enviar token al backend para validación y obtener datos del usuario
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch('https://backend-survey-phb2.onrender.com/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

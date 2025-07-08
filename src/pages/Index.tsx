@@ -75,7 +75,7 @@ const Index = () => {
       setLoading(true);
       const token = localStorage.getItem('authToken');
       
-      const response = await fetch('http://localhost:8000/encuestas/', {
+      const response = await fetch('https://backend-survey-phb2.onrender.com/encuestas/', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
