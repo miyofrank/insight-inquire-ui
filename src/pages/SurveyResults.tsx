@@ -4,9 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Download, RefreshCcw, Search, Filter, Calendar } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 interface Response {
   idRespuesta: string;
@@ -34,6 +31,7 @@ const SurveyResults = () => {
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState('individual');
 
   useEffect(() => {
     if (id) {
@@ -44,16 +42,27 @@ const SurveyResults = () => {
   const fetchData = async (surveyId: string) => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('authToken');
       
       // Fetch survey
-      const surveyResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+      const surveyResponse = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       if (surveyResponse.ok) {
         const surveyData = await surveyResponse.json();
         setSurvey(surveyData);
       }
 
       // Fetch responses
-      const responsesResponse = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`);
+      const responsesResponse = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       if (responsesResponse.ok) {
         const responsesData = await responsesResponse.json();
         setResponses(responsesData);
@@ -175,19 +184,42 @@ const SurveyResults = () => {
           <div className="p-4">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Resultados</h3>
             <div className="space-y-2">
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button 
+                onClick={() => {
+                  setActiveSection('analytics');
+                  navigate(`/analytics/${survey.idEncuesta}`);
+                }}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
                 <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
                   <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                 </div>
                 <span>Análisis de resultados</span>
               </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-md">
-                <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+              <button 
+                onClick={() => setActiveSection('individual')}
+                className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-md ${
+                  activeSection === 'individual' 
+                    ? 'bg-blue-50 text-blue-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  activeSection === 'individual' ? 'bg-blue-100' : 'bg-gray-100'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    activeSection === 'individual' ? 'bg-blue-600' : 'bg-gray-400'
+                  }`}></div>
                 </div>
                 <span>Respuestas Individuales</span>
               </button>
-              <button className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+              <button 
+                onClick={() => {
+                  setActiveSection('dashboard');
+                  navigate(`/dashboard/${survey.idEncuesta}`);
+                }}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
                 <div className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
                   <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                 </div>
@@ -197,116 +229,118 @@ const SurveyResults = () => {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Respuestas Individuales</h1>
-              
-              {/* Filters */}
-              <div className="flex items-center space-x-4 mb-6">
-                <Button variant="outline" size="sm">
-                  <Search className="w-4 h-4 mr-2" />
-                  Hide fields
-                </Button>
-                <Button variant="outline" size="sm">
-                  <RefreshCcw className="w-4 h-4 mr-2" />
-                  Sort
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Date range
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-                <div className="ml-auto flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">{responses.length} Resultados</span>
+        {/* Main Content - Solo mostramos si activeSection es 'individual' */}
+        {activeSection === 'individual' && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Respuestas Individuales</h1>
+                
+                {/* Filters */}
+                <div className="flex items-center space-x-4 mb-6">
                   <Button variant="outline" size="sm">
-                    <Download className="w-4 h-4" />
+                    <Search className="w-4 h-4 mr-2" />
+                    Hide fields
                   </Button>
+                  <Button variant="outline" size="sm">
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    Sort
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Date range
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </Button>
+                  <div className="ml-auto flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">{responses.length} Resultados</span>
+                    <Button variant="outline" size="sm">
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Questions Header */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-              <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50 border-b border-gray-200">
-                <div className="col-span-1 flex items-center">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                </div>
-                {survey.preguntas.slice(0, 4).map((question, index) => (
-                  <div key={question.idPregunta} className="col-span-2">
+              {/* Questions Header */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                <div className="grid grid-cols-12 gap-4 p-4 bg-gray-50 border-b border-gray-200">
+                  <div className="col-span-1 flex items-center">
+                    <input type="checkbox" className="rounded border-gray-300" />
+                  </div>
+                  {survey.preguntas.slice(0, 4).map((question, index) => (
+                    <div key={question.idPregunta} className="col-span-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {question.texto.substring(0, 30)}...
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {question.tipo.replace('-', ' ')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="col-span-3">
                     <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{index + 1}</span>
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">5</span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {question.texto.substring(0, 30)}...
+                        <p className="text-sm font-medium text-gray-900">
+                          ¿Qué estrategias es más efectiva para mejorar la satisfacción del cliente?
                         </p>
                         <p className="text-xs text-gray-500">
-                          {question.tipo.replace('-', ' ')}
+                          Selección múltiple
                         </p>
                       </div>
                     </div>
                   </div>
-                ))}
-                <div className="col-span-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">5</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        ¿Qué estrategias es más efectiva para mejorar la satisfacción del cliente?
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Selección múltiple
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              </div>
 
-              {/* Response Rows */}
-              <div className="divide-y divide-gray-200">
-                {Array.from({ length: 9 }, (_, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50">
-                    <div className="col-span-1 flex items-center">
-                      <input type="checkbox" className="rounded border-gray-300" />
+                {/* Response Rows */}
+                <div className="divide-y divide-gray-200">
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-4 p-4 hover:bg-gray-50">
+                      <div className="col-span-1 flex items-center">
+                        <input type="checkbox" className="rounded border-gray-300" />
+                      </div>
+                      <div className="col-span-1 text-sm text-gray-600">
+                        #{i + 1}
+                      </div>
+                      <div className="col-span-1 text-sm text-gray-600">
+                        febrero 21, 2025 14:10
+                      </div>
+                      <div className="col-span-2 text-sm text-gray-900">
+                        {i % 3 === 0 ? 'Escuchar al cliente' : 
+                         i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable'}
+                      </div>
+                      <div className="col-span-2 text-sm text-gray-900">
+                        {i % 3 === 0 ? 'Escuchar que es lo que quieren los clientes' : 
+                         i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable con todos para tener mejor servicio'}
+                      </div>
+                      <div className="col-span-2 text-sm text-gray-900">
+                        {i % 3 === 0 ? 'Precios bajos' : 
+                         i % 3 === 1 ? 'Precios bajos' : 'Atención rápida y eficiente'}
+                      </div>
+                      <div className="col-span-1 text-sm text-gray-900">
+                        {i % 3 === 0 ? 'Encuestas de satisfacción' : 
+                         i % 3 === 1 ? 'Capacitación del personal' : 
+                         i % 3 === 2 ? 'Programas de fidelización' : 
+                         'Mejora en tiempos de respuesta'}
+                      </div>
                     </div>
-                    <div className="col-span-1 text-sm text-gray-600">
-                      #{i + 1}
-                    </div>
-                    <div className="col-span-1 text-sm text-gray-600">
-                      febrero 21, 2025 14:10
-                    </div>
-                    <div className="col-span-2 text-sm text-gray-900">
-                      {i % 3 === 0 ? 'Escuchar al cliente' : 
-                       i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable'}
-                    </div>
-                    <div className="col-span-2 text-sm text-gray-900">
-                      {i % 3 === 0 ? 'Escuchar que es lo que quieren los clientes' : 
-                       i % 3 === 1 ? 'Resolver problemas rápido' : 'Trato amable con todos para tener mejor servicio'}
-                    </div>
-                    <div className="col-span-2 text-sm text-gray-900">
-                      {i % 3 === 0 ? 'Precios bajos' : 
-                       i % 3 === 1 ? 'Precios bajos' : 'Atención rápida y eficiente'}
-                    </div>
-                    <div className="col-span-1 text-sm text-gray-900">
-                      {i % 3 === 0 ? 'Encuestas de satisfacción' : 
-                       i % 3 === 1 ? 'Capacitación del personal' : 
-                       i % 3 === 2 ? 'Programas de fidelización' : 
-                       'Mejora en tiempos de respuesta'}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
