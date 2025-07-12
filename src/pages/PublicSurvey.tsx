@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ const PublicSurvey = () => {
   const [responses, setResponses] = useState<{ [key: string]: any }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [isPreview] = useState(false); // Para modo vista previa
+  const [isPreview] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -42,11 +41,9 @@ const PublicSurvey = () => {
     try {
       setLoading(true);
       
-      // Intentar endpoint público primero
       let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
       
       if (!response.ok) {
-        // Fallback al endpoint normal si el público no existe
         response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
       }
       
@@ -65,17 +62,21 @@ const PublicSurvey = () => {
   };
 
   const handleInputChange = (questionId: string, value: any) => {
-    setResponses(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
+    console.log('Updating response for question:', questionId, 'with value:', value);
+    setResponses(prev => {
+      const newResponses = {
+        ...prev,
+        [questionId]: value
+      };
+      console.log('New responses state:', newResponses);
+      return newResponses;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!survey || isPreview) return;
 
-    // Validar que todas las preguntas tengan respuesta
     const unansweredQuestions = survey.preguntas.filter(q => !responses[q.idPregunta]);
     if (unansweredQuestions.length > 0) {
       toast.error('Por favor responde todas las preguntas');
@@ -115,7 +116,8 @@ const PublicSurvey = () => {
   };
 
   const renderQuestion = (question: Question, index: number) => {
-    const value = responses[question.idPregunta] || '';
+    const currentValue = responses[question.idPregunta];
+    console.log(`Rendering question ${question.idPregunta}, current value:`, currentValue);
 
     return (
       <Card key={question.idPregunta} className="w-full max-w-2xl mx-auto mb-6">
@@ -128,7 +130,7 @@ const PublicSurvey = () => {
           {/* Texto corto */}
           {question.tipo === 'texto-corto' && (
             <Input
-              value={value}
+              value={currentValue || ''}
               onChange={(e) => handleInputChange(question.idPregunta, e.target.value)}
               placeholder="Escribe tu respuesta aquí..."
               className="w-full"
@@ -139,7 +141,7 @@ const PublicSurvey = () => {
           {/* Texto largo */}
           {question.tipo === 'texto-largo' && (
             <Textarea
-              value={value}
+              value={currentValue || ''}
               onChange={(e) => handleInputChange(question.idPregunta, e.target.value)}
               placeholder="Escribe tu respuesta aquí..."
               rows={4}
@@ -151,13 +153,13 @@ const PublicSurvey = () => {
           {/* Opción múltiple (una respuesta) */}
           {question.tipo === 'seleccion-multiple' && (
             <RadioGroup
-              value={value}
+              value={currentValue || ''}
               onValueChange={(val) => handleInputChange(question.idPregunta, val)}
             >
               {question.items.map((item) => (
                 <div key={item.idItem} className="flex items-center space-x-2">
-                  <RadioGroupItem value={item.idItem} id={item.idItem} />
-                  <Label htmlFor={item.idItem}>{item.contenido}</Label>
+                  <RadioGroupItem value={item.idItem} id={`${question.idPregunta}-${item.idItem}`} />
+                  <Label htmlFor={`${question.idPregunta}-${item.idItem}`}>{item.contenido}</Label>
                 </div>
               ))}
             </RadioGroup>
@@ -169,10 +171,10 @@ const PublicSurvey = () => {
               {question.items.map((item) => (
                 <div key={item.idItem} className="flex items-center space-x-2">
                   <Checkbox
-                    id={item.idItem}
-                    checked={Array.isArray(value) && value.includes(item.idItem)}
+                    id={`${question.idPregunta}-${item.idItem}`}
+                    checked={Array.isArray(currentValue) && currentValue.includes(item.idItem)}
                     onCheckedChange={(checked) => {
-                      const currentValues = Array.isArray(value) ? value : [];
+                      const currentValues = Array.isArray(currentValue) ? currentValue : [];
                       if (checked) {
                         handleInputChange(question.idPregunta, [...currentValues, item.idItem]);
                       } else {
@@ -180,7 +182,7 @@ const PublicSurvey = () => {
                       }
                     }}
                   />
-                  <Label htmlFor={item.idItem}>{item.contenido}</Label>
+                  <Label htmlFor={`${question.idPregunta}-${item.idItem}`}>{item.contenido}</Label>
                 </div>
               ))}
             </div>
@@ -196,11 +198,14 @@ const PublicSurvey = () => {
               <div className="flex justify-between">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((scaleValue) => (
                   <button
-                    key={scaleValue}
+                    key={`${question.idPregunta}-${scaleValue}`}
                     type="button"
-                    onClick={() => handleInputChange(question.idPregunta, scaleValue)}
+                    onClick={() => {
+                      console.log(`Clicking scale ${scaleValue} for question ${question.idPregunta}`);
+                      handleInputChange(question.idPregunta, scaleValue);
+                    }}
                     className={`w-10 h-10 rounded-md border-2 text-sm font-medium transition-colors ${
-                      value === scaleValue
+                      currentValue === scaleValue
                         ? 'border-blue-600 bg-blue-600 text-white'
                         : 'border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
                     }`}
@@ -222,11 +227,14 @@ const PublicSurvey = () => {
               <div className="flex justify-between">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((scaleValue) => (
                   <button
-                    key={scaleValue}
+                    key={`${question.idPregunta}-${scaleValue}`}
                     type="button"
-                    onClick={() => handleInputChange(question.idPregunta, scaleValue)}
+                    onClick={() => {
+                      console.log(`Clicking NPS ${scaleValue} for question ${question.idPregunta}`);
+                      handleInputChange(question.idPregunta, scaleValue);
+                    }}
                     className={`w-10 h-10 rounded-md border-2 text-sm font-medium transition-colors ${
-                      value === scaleValue
+                      currentValue === scaleValue
                         ? 'border-blue-600 bg-blue-600 text-white'
                         : 'border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
                     }`}
@@ -241,7 +249,7 @@ const PublicSurvey = () => {
           {/* Desplegable */}
           {question.tipo === 'desplegable' && (
             <select
-              value={value}
+              value={currentValue || ''}
               onChange={(e) => handleInputChange(question.idPregunta, e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
