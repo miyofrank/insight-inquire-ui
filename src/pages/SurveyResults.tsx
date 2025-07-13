@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Download, RefreshCcw, Search, Filter, Calendar } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { toast } from "sonner";
@@ -28,13 +28,13 @@ interface Survey {
   }>;
 }
 
-const SurveyResults = () => {
-  const { id } = useParams();
+const SurveyResults: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('individual');
+  const [activeSection, setActiveSection] = useState<'individual' | 'analytics' | 'dashboard'>('individual');
 
   useEffect(() => {
     checkAuth();
@@ -51,27 +51,21 @@ const SurveyResults = () => {
   };
 
   const handleAuthError = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
+    await signOut(auth).catch(console.error);
     localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
     toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
     navigate('/login');
   };
 
   const fetchData = async (surveyId: string) => {
+    setLoading(true);
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     try {
-      setLoading(true);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      // Fetch survey
+      // 1) Cargar encuesta
       const surveyResponse = await fetch(
         `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`,
         {
@@ -81,15 +75,16 @@ const SurveyResults = () => {
           },
         }
       );
-      if (surveyResponse.ok) {
-        const surveyData = await surveyResponse.json();
-        setSurvey(surveyData);
-      } else if (surveyResponse.status === 401) {
+      if (surveyResponse.status === 401) {
         handleAuthError();
         return;
       }
+      if (surveyResponse.ok) {
+        const surveyData: Survey = await surveyResponse.json();
+        setSurvey(surveyData);
+      }
 
-      // Fetch responses
+      // 2) Cargar respuestas filtradas por usuario
       const responsesResponse = await fetch(
         `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`,
         {
@@ -99,15 +94,17 @@ const SurveyResults = () => {
           },
         }
       );
-      if (responsesResponse.ok) {
-        const responsesData = await responsesResponse.json();
-        setResponses(responsesData);
-      } else if (responsesResponse.status === 401) {
+      if (responsesResponse.status === 401) {
         handleAuthError();
+        return;
+      }
+      if (responsesResponse.ok) {
+        const responsesData: Response[] = await responsesResponse.json();
+        console.log('⚙️ respuestas recibidas:', responsesData);
+        setResponses(responsesData);
       } else {
         setResponses([]);
       }
-
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Error al cargar los datos');
@@ -159,10 +156,7 @@ const SurveyResults = () => {
           <div className="flex items-center space-x-2">
             <Tabs defaultValue="results" className="mr-4">
               <TabsList className="bg-gray-100">
-                <TabsTrigger
-                  value="design"
-                  onClick={() => navigate(`/editor/${survey.idEncuesta}`)}
-                >
+                <TabsTrigger value="design" onClick={() => navigate(`/editor/${survey.idEncuesta}`)}>
                   Diseño
                 </TabsTrigger>
                 <TabsTrigger value="results">Resultados</TabsTrigger>
@@ -192,9 +186,7 @@ const SurveyResults = () => {
               onClick={() => navigate(`/analytics/${survey.idEncuesta}`)}
               className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
             >
-              <span className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
-                <RefreshCcw className="w-2 h-2 text-gray-400"/>
-              </span>
+              <RefreshCcw className="w-5 h-5 text-gray-400"/>
               <span>Análisis</span>
             </button>
             <button
@@ -256,39 +248,33 @@ const SurveyResults = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Fecha de respuesta
                       </th>
-                      {survey.preguntas.map(question => (
+                      {survey.preguntas.map(q => (
                         <th
-                          key={question.idPregunta}
+                          key={q.idPregunta}
                           className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                         >
-                          {question.texto}
+                          {q.texto}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {responses.map(response => (
-                      <tr key={response.idRespuesta} className="hover:bg-gray-50">
+                    {responses.map(r => (
+                      <tr key={r.idRespuesta} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input type="checkbox" className="rounded border-gray-300" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(response.fechaRespuesta).toLocaleString('es-ES', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                          {new Date(r.fechaRespuesta).toLocaleString('es-ES', {
+                            year: 'numeric', month: 'long', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
                           })}
                         </td>
-                        {survey.preguntas.map(question => {
-                          const ans = response.respuestas.find(r => r.idPregunta === question.idPregunta);
+                        {survey.preguntas.map(q => {
+                          const ans = r.respuestas.find(x => x.idPregunta === q.idPregunta);
                           const val = ans?.idItem;
                           return (
-                            <td
-                              key={question.idPregunta}
-                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                            >
+                            <td key={q.idPregunta} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {Array.isArray(val) ? val.join(', ') : val ?? '-'}
                             </td>
                           );
@@ -307,4 +293,5 @@ const SurveyResults = () => {
 };
 
 export default SurveyResults;
+
 
