@@ -32,7 +32,7 @@ const SurveyResponse = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
       if (response.ok) {
         const data = await response.json();
         setSurvey(data);
