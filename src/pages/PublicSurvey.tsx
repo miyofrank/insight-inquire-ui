@@ -89,7 +89,7 @@ const PublicSurvey = () => {
 
     setSubmitting(true);
     try {
-      // ← CAMBIO: ahora usamos "respuestas" en lugar de "items"
+      // Enviamos "respuestas" en lugar de "items"
       const payload = {
         respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
           preguntaId,
@@ -123,10 +123,161 @@ const PublicSurvey = () => {
 
   const renderQuestion = (question: Question, index: number) => {
     const currentValue = responses[question.idPregunta];
-    // ... resto de tu renderizado sin cambios ...
+
     return (
       <Card key={question.idPregunta} className="w-full max-w-2xl mx-auto mb-6">
-        {/* ... */}
+        <CardHeader>
+          <CardTitle className="text-lg font-medium">
+            {index + 1}. {question.texto}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Texto corto */}
+          {question.tipo === 'texto-corto' && (
+            <Input
+              id={`input-${question.idPregunta}`}
+              value={currentValue || ''}
+              onChange={e => handleInputChange(question.idPregunta, e.target.value)}
+              placeholder="Escribe tu respuesta aquí..."
+              className="w-full"
+              required
+            />
+          )}
+
+          {/* Texto largo */}
+          {question.tipo === 'texto-largo' && (
+            <Textarea
+              id={`textarea-${question.idPregunta}`}
+              value={currentValue || ''}
+              onChange={e => handleInputChange(question.idPregunta, e.target.value)}
+              placeholder="Escribe tu respuesta aquí..."
+              rows={4}
+              className="w-full resize-none"
+              required
+            />
+          )}
+
+          {/* Opción múltiple (una respuesta) */}
+          {question.tipo === 'seleccion-multiple' && (
+            <RadioGroup
+              value={currentValue || ''}
+              onValueChange={val => handleInputChange(question.idPregunta, val)}
+            >
+              {question.items.map(item => (
+                <div
+                  key={`radio-${question.idPregunta}-${item.idItem}`}
+                  className="flex items-center space-x-2"
+                >
+                  <RadioGroupItem
+                    id={`radio-${question.idPregunta}-${item.idItem}`}
+                    value={item.idItem}
+                    checked={currentValue === item.idItem}
+                  />
+                  <Label htmlFor={`radio-${question.idPregunta}-${item.idItem}`}>
+                    {item.contenido}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
+
+          {/* Opción múltiple (varias respuestas) */}
+          {question.tipo === 'casillas' && (
+            <div className="space-y-3">
+              {question.items.map(item => (
+                <div key={item.idItem} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`checkbox-${question.idPregunta}-${item.idItem}`}
+                    checked={Array.isArray(currentValue) && currentValue.includes(item.idItem)}
+                    onCheckedChange={checked => {
+                      const vals = Array.isArray(currentValue) ? currentValue : [];
+                      handleInputChange(
+                        question.idPregunta,
+                        checked ? [...vals, item.idItem] : vals.filter(v => v !== item.idItem)
+                      );
+                    }}
+                  />
+                  <Label htmlFor={`checkbox-${question.idPregunta}-${item.idItem}`}>
+                    {item.contenido}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Escala del 1 al 10 */}
+          {question.tipo === 'escala' && (
+            <div>
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+                <span>1 - Muy malo</span>
+                <span>10 - Excelente</span>
+              </div>
+              <div className="flex justify-between">
+                {[...Array(10)].map((_, i) => {
+                  const val = i + 1;
+                  return (
+                    <button
+                      key={`scale-${question.idPregunta}-${val}`}
+                      type="button"
+                      onClick={() => handleInputChange(question.idPregunta, val)}
+                      className={`w-10 h-10 rounded-md border-2 text-sm font-medium transition-colors ${
+                        currentValue === val
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* NPS (0-10) */}
+          {question.tipo === 'nps' && (
+            <div>
+              <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+                <span>0 - Muy improbable</span>
+                <span>10 - Muy probable</span>
+              </div>
+              <div className="flex justify-between">
+                {[...Array(11)].map((_, i) => (
+                  <button
+                    key={`nps-${question.idPregunta}-${i}`}
+                    type="button"
+                    onClick={() => handleInputChange(question.idPregunta, i)}
+                    className={`w-10 h-10 rounded-md border-2 text-sm font-medium transition-colors ${
+                      currentValue === i
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Desplegable */}
+          {question.tipo === 'desplegable' && (
+            <select
+              id={`select-${question.idPregunta}`}
+              value={currentValue || ''}
+              onChange={e => handleInputChange(question.idPregunta, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Selecciona una opción</option>
+              {question.items.map(item => (
+                <option key={item.idItem} value={item.idItem}>
+                  {item.contenido}
+                </option>
+              ))}
+            </select>
+          )}
+        </CardContent>
       </Card>
     );
   };
