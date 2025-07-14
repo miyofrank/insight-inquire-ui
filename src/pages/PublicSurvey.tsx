@@ -48,13 +48,19 @@ const PublicSurvey = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
-          ...q,
-          idPregunta: q.idPregunta || `pregunta-${idx}`
-        }));
+
+        // Verificación estricta: evitar preguntas sin idPregunta
+        const preguntasInvalidas = data.preguntas.filter((q: any) => !q.idPregunta);
+        if (preguntasInvalidas.length > 0) {
+          toast.error('Error: Algunas preguntas no tienen ID asignado. Contacta al administrador.');
+          setSurvey(null);
+          return;
+        }
+
         setSurvey({
-          ...data,
-          preguntas: preguntasConIds
+          idEncuesta: data.idEncuesta || surveyId, // Fallback al ID de la URL si es necesario
+          nombre: data.nombre,
+          preguntas: data.preguntas
         });
       } else {
         toast.error('Encuesta no encontrada o no disponible públicamente');
@@ -78,40 +84,41 @@ const PublicSurvey = () => {
     e.preventDefault();
     if (!survey || isPreview) return;
 
-    const unanswered = survey.preguntas.filter(q => {
-      const r = responses[q.idPregunta];
-      return !r || (Array.isArray(r) && r.length === 0);
+    const unansweredQuestions = survey.preguntas.filter(q => {
+      const response = responses[q.idPregunta];
+      return !response || (Array.isArray(response) && response.length === 0);
     });
-    if (unanswered.length > 0) {
+
+    if (unansweredQuestions.length > 0) {
       toast.error('Por favor responde todas las preguntas');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Enviamos "respuestas" en lugar de "items"
-      const payload = {
-        respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
+      const responseData = {
+        idEncuesta: survey.idEncuesta, // ✅ Solucionado: enviar correctamente idEncuesta
+        items: Object.entries(responses).map(([preguntaId, valor]) => ({
           preguntaId,
           valor: Array.isArray(valor) ? valor : valor?.toString() || ''
         }))
       };
 
-      const resp = await fetch(
+      const response = await fetch(
         `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(responseData),
         }
       );
 
-      if (resp.ok) {
+      if (response.ok) {
         setSubmitted(true);
         toast.success('¡Respuesta enviada exitosamente!');
       } else {
-        const err = await resp.json();
-        toast.error(err.detail || 'Error al enviar la respuesta');
+        const errorData = await response.json();
+        toast.error(errorData.detail || 'Error al enviar la respuesta');
       }
     } catch (error) {
       console.error('Error submitting response:', error);
@@ -331,7 +338,8 @@ const PublicSurvey = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {survey.preguntas.map((q, i) => renderQuestion(q, i))}
+          {survey.preguntas.map((question, index) => renderQuestion(question, index))}
+
           {!isPreview && (
             <div className="flex justify-center pt-8">
               <Button
