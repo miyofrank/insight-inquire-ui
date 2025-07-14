@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Play, Eye, Settings, BarChart3, Share2, Save, Edit2, Check, X } from 'lucide-react';
+import { ChevronLeft, Eye, Edit2, Check, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,7 +34,6 @@ const SurveyEditor = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
 
@@ -218,54 +218,6 @@ const SurveyEditor = () => {
     }
   };
 
-  const handleSaveAndReturn = async () => {
-    if (!survey) return;
-
-    try {
-      setSaving(true);
-      const token = localStorage.getItem('authToken');
-      
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      
-      const surveyData = {
-        idEncuesta: survey.idEncuesta,
-        idPersona: "user_1",
-        nombre: survey.nombre,
-        estadoEncuesta: "Nuevo",
-        estadoLogico: true,
-        fechaCreacion: new Date().toISOString(),
-        fechaModificacion: new Date().toISOString(),
-        preguntas: survey.preguntas
-      };
-
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${survey.idEncuesta}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(surveyData),
-      });
-
-      if (response.ok) {
-        toast.success('Encuesta guardada exitosamente');
-        navigate('/');
-      } else if (response.status === 401) {
-        handleAuthError();
-      } else {
-        toast.error('Error al guardar la encuesta');
-      }
-    } catch (error) {
-      console.error('Error saving survey:', error);
-      toast.error('Error al conectar con el servidor');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const addQuestion = (type: string) => {
     if (!survey) return;
 
@@ -331,6 +283,14 @@ const SurveyEditor = () => {
     saveSurvey();
   };
 
+  const handleSelectQuestion = (question: Question) => {
+    setSelectedQuestion(question);
+  };
+
+  const handleCloseEditor = () => {
+    setSelectedQuestion(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -371,8 +331,8 @@ const SurveyEditor = () => {
                 <ChevronLeft className="w-4 h-4 mr-1" />
               </Button>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">e</span>
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">E</span>
                 </div>
                 {isEditingName ? (
                   <div className="flex items-center space-x-2">
@@ -439,23 +399,11 @@ const SurveyEditor = () => {
                 <Eye className="w-4 h-4 mr-2" />
                 Vista previa
               </Button>
-              
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleSaveAndReturn}
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700 text-white border-green-600"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Guardando...' : 'Guardar'}
-              </Button>
 
               <Button 
                 onClick={() => setShowPublishModal(true)}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                <Share2 className="w-4 h-4 mr-2" />
                 Publicar
               </Button>
             </div>
@@ -475,7 +423,7 @@ const SurveyEditor = () => {
           <SurveyCanvas 
             questions={survey.preguntas}
             selectedQuestion={selectedQuestion}
-            onSelectQuestion={setSelectedQuestion}
+            onSelectQuestion={handleSelectQuestion}
             onDeleteQuestion={deleteQuestion}
             onReorderQuestions={handleReorderQuestions}
           />
@@ -487,6 +435,7 @@ const SurveyEditor = () => {
             <QuestionEditor 
               question={selectedQuestion}
               onUpdateQuestion={updateQuestion}
+              onClose={handleCloseEditor}
             />
           </div>
         )}

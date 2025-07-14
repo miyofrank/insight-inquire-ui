@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { Type, AlignLeft, CheckSquare, ChevronDown, List, Star, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { Type, AlignLeft, CheckSquare, RadioButton, ChevronDown, Star, BarChart3, Menu, Grid2X2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 interface QuestionPaletteProps {
   onAddQuestion: (type: string) => void;
@@ -21,9 +22,15 @@ const questionTypes = [
   },
   {
     id: 'seleccion-multiple',
-    name: 'Selección múltiple',
+    name: 'Opción Múltiple',
+    icon: RadioButton,
+    description: 'Una sola respuesta'
+  },
+  {
+    id: 'casillas',
+    name: 'Casillas',
     icon: CheckSquare,
-    description: 'Múltiples opciones'
+    description: 'Múltiples respuestas'
   },
   {
     id: 'desplegable',
@@ -32,78 +39,71 @@ const questionTypes = [
     description: 'Lista desplegable'
   },
   {
-    id: 'casillas',
-    name: 'Casillas',
-    icon: CheckSquare,
-    description: 'Casillas de verificación'
-  },
-  {
     id: 'escala',
     name: 'Escala',
-    icon: List,
+    icon: BarChart3,
     description: 'Escala numérica'
   },
   {
     id: 'calificacion',
     name: 'Calificación',
     icon: Star,
-    description: 'Calificación con estrellas'
+    description: 'Estrellas de 1 a 5'
   }
 ];
 
 export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion }) => {
+  const [isCompactView, setIsCompactView] = useState(false);
+
   return (
-    <div className="p-4">
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-900 mb-3">Crear</h3>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Buscar Elemento"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+    <div className="p-4 h-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">Elementos</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCompactView(!isCompactView)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          {isCompactView ? <Grid2X2 className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </Button>
       </div>
-
-      <div className="mb-6">
-        <div className="flex space-x-2 mb-4">
-          <button className="px-3 py-1 bg-gray-600 text-white text-xs rounded-md">
-            Todos
-          </button>
-          <button className="px-3 py-1 bg-white border border-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-50">
-            Widgets
-          </button>
-        </div>
-        
-        <h4 className="text-xs font-medium text-gray-600 mb-3 flex items-center">
-          Más usadas
-          <div className="ml-auto">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </div>
-        </h4>
-      </div>
-
-      <div className="space-y-3">
+      
+      <div className={`space-y-2 ${isCompactView ? 'grid-cols-1' : 'grid grid-cols-2 gap-2'}`}>
         {questionTypes.map((type) => {
           const Icon = type.icon;
+          
+          if (isCompactView) {
+            return (
+              <Button
+                key={type.id}
+                variant="outline"
+                onClick={() => onAddQuestion(type.id)}
+                className="w-full h-auto p-2 text-left hover:bg-blue-50 hover:border-blue-300"
+              >
+                <div className="flex items-center space-x-2">
+                  <Icon className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-900">{type.name}</span>
+                </div>
+              </Button>
+            );
+          }
+          
           return (
-            <div
+            <Button
               key={type.id}
+              variant="outline"
               onClick={() => onAddQuestion(type.id)}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all group"
+              className="h-auto p-3 text-left hover:bg-blue-50 hover:border-blue-300"
             >
-              <div className="w-10 h-10 bg-blue-100 rounded-lg mb-2 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                <Icon className="w-5 h-5 text-blue-600" />
+              <div className="flex flex-col items-center space-y-2">
+                <Icon className="w-6 h-6 text-blue-600" />
+                <div className="text-center">
+                  <div className="text-sm font-medium text-gray-900">{type.name}</div>
+                  <div className="text-xs text-gray-500">{type.description}</div>
+                </div>
               </div>
-              <span className="text-xs font-medium text-gray-900 text-center mb-1">
-                {type.name}
-              </span>
-              <span className="text-xs text-gray-500 text-center">
-                {type.description}
-              </span>
-            </div>
+            </Button>
           );
         })}
       </div>
