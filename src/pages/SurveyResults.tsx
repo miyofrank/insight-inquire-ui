@@ -87,16 +87,15 @@ const SurveyResults: React.FC = () => {
 
 const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
   if (!survey) return valor;
+
   const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
   if (!pregunta) return valor;
 
   if (pregunta.opciones && pregunta.opciones.length > 0) {
     const renderValor = (v: string | number) => {
-      // No tienes idOpcion ni idItem, así que solo intentas match con el texto
-      const opcion = pregunta.opciones?.find((o) => o.texto === v);
+      const opcion = pregunta.opciones?.find((o) => o.idOpcion === v);
 
-      // Si no hay match, devuelves el valor tal como vino (item-x-y o texto crudo)
-      return opcion ? opcion.texto : v;
+      return opcion ? opcion.texto : v;  // Si no encuentra el id, muestra el valor original
     };
 
     if (Array.isArray(valor)) {
@@ -108,6 +107,7 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
   return valor;
 };
+
 
 
 
