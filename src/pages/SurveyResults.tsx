@@ -83,25 +83,30 @@ const SurveyResults: React.FC = () => {
     }
   };
 
-  const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
+const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
     if (!survey) return valor;
     const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
     if (!pregunta) return valor;
 
-    if (pregunta.opciones && (pregunta.tipo === 'multiple' || pregunta.tipo === 'escala' || pregunta.tipo === 'seleccion-unica' || pregunta.tipo === 'opciones')) {
+    if (pregunta.opciones && pregunta.opciones.length > 0) {
+      const renderValor = (v: string | number) => {
+        // Buscar por idOpcion (si existiera) o por texto
+        const opcion =
+          pregunta.opciones?.find((o) => o.idOpcion === v) ||
+          pregunta.opciones?.find((o) => o.texto === v);
+
+        return opcion ? opcion.texto : v;
+      };
+
       if (Array.isArray(valor)) {
-        return valor.map((v) => {
-          const opcion = pregunta.opciones?.find((o) => o.idOpcion === v);
-          return opcion ? opcion.texto : v;
-        }).join(', ');
+        return valor.map(renderValor).join(', ');
       } else {
-        const opcion = pregunta.opciones?.find((o) => o.idOpcion === valor);
-        return opcion ? opcion.texto : valor;
+        return renderValor(valor);
       }
     }
 
     return valor;
-  };
+};
 
   if (loading) {
     return (
