@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -18,13 +17,19 @@ interface Question {
 interface QuestionEditorProps {
   question: Question;
   onUpdateQuestion: (question: Question) => void;
+  onClose: () => void;
 }
 
 export const QuestionEditor: React.FC<QuestionEditorProps> = ({
   question,
-  onUpdateQuestion
+  onUpdateQuestion,
+  onClose
 }) => {
   const [localQuestion, setLocalQuestion] = useState(question);
+
+  React.useEffect(() => {
+    setLocalQuestion(question);
+  }, [question]);
 
   const updateField = (field: string, value: any) => {
     const updated = { ...localQuestion, [field]: value };
@@ -63,6 +68,14 @@ export const QuestionEditor: React.FC<QuestionEditorProps> = ({
             word.charAt(0).toUpperCase() + word.slice(1)
           ).join(' ')}
         </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-4 h-4" />
+        </Button>
       </div>
 
       <div className="space-y-6">
