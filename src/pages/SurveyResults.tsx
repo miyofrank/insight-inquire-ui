@@ -70,7 +70,7 @@ const SurveyResults: React.FC = () => {
     try {
       // 1) Cargar metadata de la encuesta
       const surveyRes = await fetch(
-        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`,
+        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
