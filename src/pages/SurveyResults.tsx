@@ -93,9 +93,11 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
   if (pregunta.opciones && pregunta.opciones.length > 0) {
     const renderValor = (v: string | number) => {
-      const opcion = pregunta.opciones?.find((o) => o.idOpcion === v);
+      const opcion = pregunta.opciones?.find((o) => 
+        o.idOpcion === v || o.idItem === v || o.texto === v || o.contenido === v
+      );
 
-      return opcion ? opcion.texto : v;  // Si no encuentra el id, muestra el valor original
+      return opcion ? opcion.texto || opcion.contenido : v;  // Fallback al valor bruto
     };
 
     if (Array.isArray(valor)) {
@@ -107,6 +109,7 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
   return valor;
 };
+
 
 
 
