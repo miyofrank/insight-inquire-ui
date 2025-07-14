@@ -30,8 +30,10 @@ interface PublicSurvey {
     texto: string;
     tipo: string;
     opciones?: Array<{
-      idOpcion: string;
-      texto: string;
+      idOpcion?: string;
+      texto?: string;
+      idItem?: string;
+      contenido?: string;
     }>;
   }>;
 }
@@ -84,29 +86,31 @@ const SurveyResults: React.FC = () => {
   };
 
 const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
-    if (!survey) return valor;
-    const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
-    if (!pregunta) return valor;
+  if (!survey) return valor;
+  const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
+  if (!pregunta) return valor;
 
-    if (pregunta.opciones && pregunta.opciones.length > 0) {
-      const renderValor = (v: string | number) => {
-        // Buscar por idOpcion (si existiera) o por texto
-        const opcion =
-          pregunta.opciones?.find((o) => o.idOpcion === v) ||
-          pregunta.opciones?.find((o) => o.texto === v);
+  if (pregunta.opciones && pregunta.opciones.length > 0) {
+    const renderValor = (v: string | number) => {
+      // Busca si coincide directamente con el texto (por defecto backend envía así)
+      const opcion = pregunta.opciones?.find((o) => 
+        o.texto === v || o.idOpcion === v || o.idItem === v || o.contenido === v
+      );
 
-        return opcion ? opcion.texto : v;
-      };
+      // Si lo encuentra, muestra el texto o contenido, si no, deja el valor tal cual (fallback)
+      return opcion ? (opcion.texto || opcion.contenido || v) : v;
+    };
 
-      if (Array.isArray(valor)) {
-        return valor.map(renderValor).join(', ');
-      } else {
-        return renderValor(valor);
-      }
+    if (Array.isArray(valor)) {
+      return valor.map(renderValor).join(', ');
+    } else {
+      return renderValor(valor);
     }
+  }
 
-    return valor;
+  return valor;
 };
+
 
   if (loading) {
     return (
