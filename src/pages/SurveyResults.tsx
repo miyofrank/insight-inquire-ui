@@ -86,29 +86,28 @@ const SurveyResults: React.FC = () => {
   };
 
 const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
-  if (!survey) return valor;
-  const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
-  if (!pregunta) return valor;
+    if (!survey) return valor;
+    const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
+    if (!pregunta) return valor;
 
-  if (pregunta.opciones && pregunta.opciones.length > 0) {
-    const renderValor = (v: string | number) => {
-      // Busca si coincide directamente con el texto (por defecto backend envía así)
-      const opcion = pregunta.opciones?.find((o) => 
-        o.texto === v || o.idOpcion === v || o.idItem === v || o.contenido === v
-      );
+    if (pregunta.opciones && pregunta.opciones.length > 0) {
+      const renderValor = (v: string | number) => {
+        // Buscar por diferentes esquemas de datos
+        const opcion = pregunta.opciones?.find((o: any) => 
+          o.idOpcion === v || o.idItem === v || o.texto === v || o.contenido === v
+        );
 
-      // Si lo encuentra, muestra el texto o contenido, si no, deja el valor tal cual (fallback)
-      return opcion ? (opcion.texto || opcion.contenido || v) : v;
-    };
+        return opcion ? (opcion.texto || opcion.contenido) : v;
+      };
 
-    if (Array.isArray(valor)) {
-      return valor.map(renderValor).join(', ');
-    } else {
-      return renderValor(valor);
+      if (Array.isArray(valor)) {
+        return valor.map(renderValor).join(', ');
+      } else {
+        return renderValor(valor);
+      }
     }
-  }
 
-  return valor;
+    return valor;
 };
 
 
