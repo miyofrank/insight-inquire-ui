@@ -30,8 +30,10 @@ interface PublicSurvey {
     texto: string;
     tipo: string;
     opciones?: Array<{
-      idOpcion: string;
-      texto: string;
+      idOpcion?: string;
+      texto?: string;
+      idItem?: string;
+      contenido?: string;
     }>;
   }>;
 }
@@ -90,12 +92,12 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
     if (pregunta.opciones && pregunta.opciones.length > 0) {
       const renderValor = (v: string | number) => {
-        // Buscar por idOpcion (si existiera) o por texto
-        const opcion =
-          pregunta.opciones?.find((o) => o.idOpcion === v) ||
-          pregunta.opciones?.find((o) => o.texto === v);
+        // Buscar por diferentes esquemas de datos
+        const opcion = pregunta.opciones?.find((o: any) => 
+          o.idOpcion === v || o.idItem === v || o.texto === v || o.contenido === v
+        );
 
-        return opcion ? opcion.texto : v;
+        return opcion ? (opcion.texto || opcion.contenido) : v;
       };
 
       if (Array.isArray(valor)) {
