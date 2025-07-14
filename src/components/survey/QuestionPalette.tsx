@@ -56,7 +56,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
   const [isCompactView, setIsCompactView] = useState(false);
 
   return (
-    <div className="p-6 h-full">
+    <div className="p-8 h-full">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-900">Elementos</h2>
         <Button
@@ -69,7 +69,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
         </Button>
       </div>
       
-      <div className={isCompactView ? 'space-y-3' : 'grid grid-cols-2 gap-4'}>
+      <div className={isCompactView ? 'space-y-3 px-2' : 'grid grid-cols-2 gap-6 px-2'}>
         {questionTypes.map((type) => {
           const Icon = type.icon;
           
@@ -79,11 +79,11 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
                 key={type.id}
                 variant="outline"
                 onClick={() => onAddQuestion(type.id)}
-                className="w-full h-auto p-3 text-left hover:bg-blue-50 hover:border-blue-300 flex items-center justify-start"
+                className="w-full h-auto p-4 text-left hover:bg-blue-50 hover:border-blue-300 flex items-center justify-start"
               >
-                <div className="flex items-center space-x-3 min-w-0 flex-1">
-                  <Icon className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-sm font-medium text-gray-900 truncate">{type.name}</span>
+                <div className="flex items-center space-x-4 min-w-0 flex-1">
+                  <Icon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm font-medium text-gray-900 break-words">{type.name}</span>
                 </div>
               </Button>
             );
@@ -94,13 +94,13 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
               key={type.id}
               variant="outline"
               onClick={() => onAddQuestion(type.id)}
-              className="h-auto p-4 text-left hover:bg-blue-50 hover:border-blue-300 w-full"
+              className="h-auto p-5 text-left hover:bg-blue-50 hover:border-blue-300 w-full min-h-[100px]"
             >
               <div className="flex flex-col items-center space-y-3 min-w-0 w-full">
-                <Icon className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                <div className="text-center w-full min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate px-1">{type.name}</div>
-                  <div className="text-xs text-gray-500 truncate px-1 mt-1">{type.description}</div>
+                <Icon className="w-7 h-7 text-blue-600 flex-shrink-0" />
+                <div className="text-center w-full min-w-0 space-y-1">
+                  <div className="text-sm font-medium text-gray-900 break-words leading-relaxed px-2">{type.name}</div>
+                  <div className="text-xs text-gray-500 break-words leading-relaxed px-2">{type.description}</div>
                 </div>
               </div>
             </Button>
