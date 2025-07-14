@@ -29,6 +29,10 @@ interface PublicSurvey {
     idPregunta: string;
     texto: string;
     tipo: string;
+    opciones?: Array<{
+      idOpcion: string;
+      texto: string;
+    }>;
   }>;
 }
 
@@ -47,7 +51,7 @@ const SurveyResults: React.FC = () => {
   const fetchData = async (surveyId: string) => {
     setLoading(true);
     try {
-      // 1) Cargar encuesta pública
+      // Cargar encuesta pública
       const surveyRes = await fetch(
         `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`
       );
@@ -59,7 +63,7 @@ const SurveyResults: React.FC = () => {
       const surveyData: PublicSurvey = await surveyRes.json();
       setSurvey(surveyData);
 
-      // 2) Cargar respuestas públicas
+      // Cargar respuestas públicas
       const respRes = await fetch(
         `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}/public/items`
       );
@@ -77,6 +81,26 @@ const SurveyResults: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) => {
+    if (!survey) return valor;
+    const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
+    if (!pregunta) return valor;
+
+    if (pregunta.opciones && (pregunta.tipo === 'multiple' || pregunta.tipo === 'escala' || pregunta.tipo === 'seleccion-unica' || pregunta.tipo === 'opciones')) {
+      if (Array.isArray(valor)) {
+        return valor.map((v) => {
+          const opcion = pregunta.opciones?.find((o) => o.idOpcion === v);
+          return opcion ? opcion.texto : v;
+        }).join(', ');
+      } else {
+        const opcion = pregunta.opciones?.find((o) => o.idOpcion === valor);
+        return opcion ? opcion.texto : valor;
+      }
+    }
+
+    return valor;
   };
 
   if (loading) {
@@ -142,15 +166,13 @@ const SurveyResults: React.FC = () => {
             <Download className="w-4 h-4 mr-2" />
             Exportar
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => fetchData(survey.idEncuesta)}>
             <RefreshCcw className="w-4 h-4 mr-2" />
             Actualizar
           </Button>
           <Button
             className="bg-blue-600 hover:bg-blue-700"
-            onClick={() =>
-              window.open(`/survey/${survey.idEncuesta}`, '_blank')
-            }
+            onClick={() => window.open(`/survey/${survey.idEncuesta}`, '_blank')}
           >
             Publicar
           </Button>
@@ -173,9 +195,7 @@ const SurveyResults: React.FC = () => {
             <button
               onClick={() => setActiveSection('individual')}
               className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center space-x-2 ${
-                activeSection === 'individual'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                activeSection === 'individual' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
               <span
@@ -231,11 +251,7 @@ const SurveyResults: React.FC = () => {
                 <p className="text-gray-500 mb-4">
                   No hay respuestas registradas aún.
                 </p>
-                <Button
-                  onClick={() =>
-                    window.open(`/survey/${survey.idEncuesta}`, '_blank')
-                  }
-                >
+                <Button onClick={() => window.open(`/survey/${survey.idEncuesta}`, '_blank')}>
                   Compartir Encuesta
                 </Button>
               </div>
@@ -245,19 +261,13 @@ const SurveyResults: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300"
-                        />
+                        <input type="checkbox" className="rounded border-gray-300" />
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Fecha de respuesta
                       </th>
                       {survey.preguntas.map((q) => (
-                        <th
-                          key={q.idPregunta}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
-                        >
+                        <th key={q.idPregunta} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                           {q.texto}
                         </th>
                       ))}
@@ -267,10 +277,7 @@ const SurveyResults: React.FC = () => {
                     {responses.map((r, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300"
-                          />
+                          <input type="checkbox" className="rounded border-gray-300" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(r.timestamp).toLocaleString('es-ES', {
@@ -282,16 +289,11 @@ const SurveyResults: React.FC = () => {
                           })}
                         </td>
                         {survey.preguntas.map((q) => {
-                          const ans = r.respuestas.find(
-                            (x) => x.preguntaId === q.idPregunta
-                          );
+                          const ans = r.respuestas.find((x) => x.preguntaId === q.idPregunta);
                           const val = ans?.valor;
                           return (
-                            <td
-                              key={q.idPregunta}
-                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                            >
-                              {Array.isArray(val) ? val.join(', ') : val ?? '-'}
+                            <td key={q.idPregunta} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {val !== undefined ? mapValueToLabel(q.idPregunta, val) : '-'}
                             </td>
                           );
                         })}
