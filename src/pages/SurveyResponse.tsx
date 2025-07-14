@@ -75,7 +75,7 @@ const SurveyResponse = () => {
         fechaRespuesta: new Date().toISOString()
       };
 
-      const response = await fetch('https://backend-survey-phb2.onrender.com/respuestas/', {
+      const response = await fetch(`https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey?.idEncuesta}/public`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
