@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Type, AlignLeft, CheckSquare, RadioButton, ChevronDown, Star, BarChart3, Menu, Grid2X2 } from 'lucide-react';
+import { Type, AlignLeft, CheckSquare, Radio, ChevronDown, Star, BarChart3, Menu, Grid3X3 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 interface QuestionPaletteProps {
@@ -23,7 +23,7 @@ const questionTypes = [
   {
     id: 'seleccion-multiple',
     name: 'Opción Múltiple',
-    icon: RadioButton,
+    icon: Radio,
     description: 'Una sola respuesta'
   },
   {
@@ -65,11 +65,11 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
           onClick={() => setIsCompactView(!isCompactView)}
           className="text-gray-500 hover:text-gray-700"
         >
-          {isCompactView ? <Grid2X2 className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          {isCompactView ? <Grid3X3 className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
         </Button>
       </div>
       
-      <div className={`space-y-2 ${isCompactView ? 'grid-cols-1' : 'grid grid-cols-2 gap-2'}`}>
+      <div className={isCompactView ? 'space-y-2' : 'grid grid-cols-2 gap-2'}>
         {questionTypes.map((type) => {
           const Icon = type.icon;
           
