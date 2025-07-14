@@ -29,7 +29,6 @@ const PublicSurvey = () => {
   const [responses, setResponses] = useState<{ [key: string]: any }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [isPreview] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -41,6 +40,7 @@ const PublicSurvey = () => {
     try {
       setLoading(true);
 
+      // Intenta cargar la encuesta pública si existe, si no, carga la encuesta estándar
       let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
       if (!response.ok) {
         response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
@@ -49,7 +49,7 @@ const PublicSurvey = () => {
       if (response.ok) {
         const data = await response.json();
 
-        // 🔧 Parche cliente: asegurar IDs únicos en preguntas
+        // Asegurarse de que las preguntas tienen IDs únicos
         const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
           ...q,
           idPregunta: q.idPregunta || `pregunta-${idx}`
@@ -79,8 +79,9 @@ const PublicSurvey = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!survey || isPreview) return;
+    if (!survey) return;
 
+    // Validación para asegurarse de que todas las preguntas fueron respondidas
     const unansweredQuestions = survey.preguntas.filter(q => {
       const response = responses[q.idPregunta];
       return !response || (Array.isArray(response) && response.length === 0);
