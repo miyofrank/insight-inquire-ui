@@ -10,23 +10,21 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { toast } from "sonner";
 
-interface Response {
-  idRespuesta: string;
-  idEncuesta: string;
-  respuestas: Array<{
-    idPregunta: string;
-    valor: string | number | string[];
-  }>;
-  fechaRespuesta: string;
+interface AnswerItem {
+  preguntaId: string;
+  valor: string | number | string[];
 }
 
-interface Survey {
+interface PublicResponse {
+  timestamp: string;
+  respuestas: AnswerItem[];
+}
+
+interface PublicSurvey {
   idEncuesta: string;
-  nombre: string;
+  titulo: string;
   preguntas: Array<{
     idPregunta: string;
     texto: string;
@@ -37,77 +35,42 @@ interface Survey {
 const SurveyResults: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [survey, setSurvey] = useState<Survey | null>(null);
-  const [responses, setResponses] = useState<Response[]>([]);
+  const [survey, setSurvey] = useState<PublicSurvey | null>(null);
+  const [responses, setResponses] = useState<PublicResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'individual' | 'analytics' | 'dashboard'>('individual');
 
   useEffect(() => {
-    checkAuth();
     if (id) fetchData(id);
   }, [id]);
 
-  const checkAuth = () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) navigate('/login');
-  };
-
-  const handleAuthError = async () => {
-    await signOut(auth).catch(console.error);
-    localStorage.removeItem('authToken');
-    toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-    navigate('/login');
-  };
-
   const fetchData = async (surveyId: string) => {
     setLoading(true);
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
     try {
-      // 1) Cargar metadata de la encuesta
+      // 1) Cargar encuesta pública
       const surveyRes = await fetch(
-        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`
       );
-      if (surveyRes.status === 401) {
-        handleAuthError();
+      if (!surveyRes.ok) {
+        toast.error('No se pudo cargar la encuesta pública');
+        setLoading(false);
         return;
       }
-      if (surveyRes.ok) {
-        const surveyData: Survey = await surveyRes.json();
-        setSurvey(surveyData);
-      }
+      const surveyData: PublicSurvey = await surveyRes.json();
+      setSurvey(surveyData);
 
-      // 2) Cargar todas las respuestas de la encuesta
+      // 2) Cargar respuestas públicas
       const respRes = await fetch(
-        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}/public/items`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}/public/items`
       );
-      if (respRes.status === 401) {
-        handleAuthError();
+      if (!respRes.ok) {
+        toast.error('No se pudieron cargar las respuestas');
+        setLoading(false);
         return;
       }
-      if (respRes.ok) {
-        const respData: Response[] = await respRes.json();
-        console.log('⚙️ respuestas recibidas:', respData);
-        setResponses(respData);
-      } else {
-        setResponses([]);
-      }
+      const respData: PublicResponse[] = await respRes.json();
+      setResponses(respData);
+
     } catch (err) {
       console.error('Error fetching data:', err);
       toast.error('Error al cargar los datos');
@@ -154,7 +117,7 @@ const SurveyResults: React.FC = () => {
             <ChevronLeft className="w-4 h-4 mr-1" />
           </Button>
           <h1 className="text-lg font-semibold text-gray-900">
-            {survey.nombre}
+            {survey.titulo}
           </h1>
         </div>
         <div className="flex items-center space-x-2">
@@ -198,9 +161,7 @@ const SurveyResults: React.FC = () => {
       <div className="flex h-[calc(100vh-73px)]">
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-4">
-            Secciones
-          </h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-4">Secciones</h3>
           <nav className="space-y-2">
             <button
               onClick={() => navigate(`/analytics/${survey.idEncuesta}`)}
@@ -303,8 +264,8 @@ const SurveyResults: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {responses.map((r) => (
-                      <tr key={r.idRespuesta} className="hover:bg-gray-50">
+                    {responses.map((r, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
@@ -312,7 +273,7 @@ const SurveyResults: React.FC = () => {
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(r.fechaRespuesta).toLocaleString('es-ES', {
+                          {new Date(r.timestamp).toLocaleString('es-ES', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -322,7 +283,7 @@ const SurveyResults: React.FC = () => {
                         </td>
                         {survey.preguntas.map((q) => {
                           const ans = r.respuestas.find(
-                            (x) => x.idPregunta === q.idPregunta
+                            (x) => x.preguntaId === q.idPregunta
                           );
                           const val = ans?.valor;
                           return (
@@ -348,4 +309,3 @@ const SurveyResults: React.FC = () => {
 };
 
 export default SurveyResults;
-
