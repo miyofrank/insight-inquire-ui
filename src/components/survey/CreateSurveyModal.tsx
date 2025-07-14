@@ -80,13 +80,6 @@ export const CreateSurveyModal: React.FC<CreateSurveyModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl p-0 bg-white">
         <div className="relative">
-          <button 
-            onClick={onClose}
-            className="absolute right-4 top-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-          
           <div className="p-8 text-center">
             <p className="text-sm text-gray-500 mb-2">Bienvenido a Eficientis Survey</p>
             <h2 className="text-3xl font-bold text-gray-900 mb-12">Crea una encuesta</h2>
