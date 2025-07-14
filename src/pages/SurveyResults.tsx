@@ -92,13 +92,11 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
   if (pregunta.opciones && pregunta.opciones.length > 0) {
     const renderValor = (v: string | number) => {
-      // Busca si coincide directamente con el texto (por defecto backend envía así)
-      const opcion = pregunta.opciones?.find((o) => 
-        o.texto === v || o.idOpcion === v || o.idItem === v || o.contenido === v
-      );
+      // No tienes idOpcion ni idItem, así que solo intentas match con el texto
+      const opcion = pregunta.opciones?.find((o) => o.texto === v);
 
-      // Si lo encuentra, muestra el texto o contenido, si no, deja el valor tal cual (fallback)
-      return opcion ? (opcion.texto || opcion.contenido || v) : v;
+      // Si no hay match, devuelves el valor tal como vino (item-x-y o texto crudo)
+      return opcion ? opcion.texto : v;
     };
 
     if (Array.isArray(valor)) {
@@ -110,6 +108,7 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
 
   return valor;
 };
+
 
 
 
