@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Progress } from "@/components/ui/progress";
@@ -70,7 +69,7 @@ const SurveyResponse = () => {
       const responseData = {
         idRespuesta: `resp_${Date.now()}`,
         idEncuesta: survey?.idEncuesta,
-        idPersona: "anonymous",
+        idPersona: "anonymous", // Respuestas anónimas
         respuestas: responses,
         fechaRespuesta: new Date().toISOString()
       };
