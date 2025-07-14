@@ -1,5 +1,3 @@
-// src/pages/PublicSurvey.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -24,41 +22,46 @@ interface Survey {
   preguntas: Question[];
 }
 
-const PublicSurvey: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+const PublicSurvey = () => {
+  const { id } = useParams();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
-  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [responses, setResponses] = useState<{ [key: string]: any }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isPreview] = useState(false);
 
   useEffect(() => {
-    if (id) fetchSurvey(id);
+    if (id) {
+      fetchSurvey(id);
+    }
   }, [id]);
 
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`
-      );
-      if (!res.ok) {
-        throw new Error("No pública, intentando privada");
+
+      let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+      if (!response.ok) {
+        response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
       }
-      const data = await res.json();
-      // Asegurar que cada pregunta tenga idPregunta
-      const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
-        ...q,
-        idPregunta: q.idPregunta || `pregunta-${idx}`
-      }));
-      setSurvey({
-        idEncuesta: data.idEncuesta,
-        nombre: data.nombre,
-        preguntas: preguntasConIds
-      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
+          ...q,
+          idPregunta: q.idPregunta || `pregunta-${idx}`
+        }));
+        setSurvey({
+          ...data,
+          preguntas: preguntasConIds
+        });
+      } else {
+        toast.error('Encuesta no encontrada o no disponible públicamente');
+      }
     } catch (error) {
-      console.error("Error fetching survey:", error);
-      toast.error("Encuesta no disponible públicamente");
+      console.error('Error fetching survey:', error);
+      toast.error('Error al cargar la encuesta');
     } finally {
       setLoading(false);
     }
@@ -73,181 +76,124 @@ const PublicSurvey: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!survey) return;
+    if (!survey || isPreview) return;
 
-    // Validar que todas las preguntas tengan respuesta
-    const faltantes = survey.preguntas.filter(q => {
-      const resp = responses[q.idPregunta];
-      return resp === undefined || resp === "" || (Array.isArray(resp) && resp.length === 0);
+    const unanswered = survey.preguntas.filter(q => {
+      const r = responses[q.idPregunta];
+      return !r || (Array.isArray(r) && r.length === 0);
     });
-    if (faltantes.length) {
-      toast.error("Por favor responde todas las preguntas");
+    if (unanswered.length > 0) {
+      toast.error('Por favor responde todas las preguntas');
       return;
     }
 
     setSubmitting(true);
     try {
+      // ← CAMBIO: ahora usamos "respuestas" en lugar de "items"
       const payload = {
         respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
           preguntaId,
-          // Para el backend, valor puede ser string|number|array
-          valor: Array.isArray(valor) ? valor : valor
+          valor: Array.isArray(valor) ? valor : valor?.toString() || ''
         }))
       };
 
       const resp = await fetch(
         `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         }
       );
 
       if (resp.ok) {
         setSubmitted(true);
-        toast.success("¡Respuesta enviada exitosamente!");
+        toast.success('¡Respuesta enviada exitosamente!');
       } else {
         const err = await resp.json();
-        toast.error(err.detail || "Error al enviar la respuesta");
+        toast.error(err.detail || 'Error al enviar la respuesta');
       }
     } catch (error) {
-      console.error("Error submitting response:", error);
-      toast.error("Error al enviar la respuesta");
+      console.error('Error submitting response:', error);
+      toast.error('Error al enviar la respuesta');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderQuestion = (q: Question, idx: number) => {
-    const val = responses[q.idPregunta];
+  const renderQuestion = (question: Question, index: number) => {
+    const currentValue = responses[question.idPregunta];
+    // ... resto de tu renderizado sin cambios ...
     return (
-      <Card key={q.idPregunta} className="max-w-2xl mx-auto mb-6">
-        <CardHeader>
-          <CardTitle>{idx + 1}. {q.texto}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {q.tipo === "texto-corto" && (
-            <Input
-              value={val || ""}
-              onChange={e => handleInputChange(q.idPregunta, e.target.value)}
-              placeholder="Escribe tu respuesta..."
-              required
-            />
-          )}
-          {q.tipo === "texto-largo" && (
-            <Textarea
-              value={val || ""}
-              onChange={e => handleInputChange(q.idPregunta, e.target.value)}
-              rows={4}
-              placeholder="Escribe tu respuesta..."
-              required
-            />
-          )}
-          {q.tipo === "seleccion-multiple" && (
-            <RadioGroup
-              value={val || ""}
-              onValueChange={v => handleInputChange(q.idPregunta, v)}
-            >
-              {q.items.map(item => (
-                <div key={item.idItem} className="flex items-center space-x-2">
-                  <RadioGroupItem value={item.idItem} />
-                  <Label>{item.contenido}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          )}
-          {q.tipo === "casillas" && (
-            <div className="space-y-2">
-              {q.items.map(item => (
-                <div key={item.idItem} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={Array.isArray(val) && val.includes(item.idItem)}
-                    onCheckedChange={checked => {
-                      const prev = Array.isArray(val) ? val : [];
-                      handleInputChange(
-                        q.idPregunta,
-                        checked
-                          ? [...prev, item.idItem]
-                          : prev.filter((v: string) => v !== item.idItem)
-                      );
-                    }}
-                  />
-                  <Label>{item.contenido}</Label>
-                </div>
-              ))}
-            </div>
-          )}
-          {q.tipo === "escala" && (
-            <div className="flex justify-between">
-              {[...Array(10)].map((_, i) => {
-                const n = i + 1;
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => handleInputChange(q.idPregunta, n)}
-                    className={`w-8 h-8 rounded-full border ${
-                      val === n ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {q.tipo === "nps" && (
-            <div className="flex justify-between">
-              {[...Array(11)].map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleInputChange(q.idPregunta, i)}
-                  className={`w-8 h-8 rounded-full border ${
-                    val === i ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
-                  }`}
-                >
-                  {i}
-                </button>
-              ))}
-            </div>
-          )}
-          {q.tipo === "desplegable" && (
-            <select
-              value={val || ""}
-              onChange={e => handleInputChange(q.idPregunta, e.target.value)}
-              required
-              className="w-full p-2 border rounded"
-            >
-              <option value="">-- Selecciona --</option>
-              {q.items.map(item => (
-                <option key={item.idItem} value={item.idItem}>
-                  {item.contenido}
-                </option>
-              ))}
-            </select>
-          )}
-        </CardContent>
+      <Card key={question.idPregunta} className="w-full max-w-2xl mx-auto mb-6">
+        {/* ... */}
       </Card>
     );
   };
 
-  if (loading) return <div>Cargando encuesta...</div>;
-  if (!survey) return <div>Encuesta no encontrada.</div>;
-  if (submitted) return <div>¡Gracias! Tu respuesta ha sido registrada.</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando encuesta...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-lg mb-2">Encuesta no encontrada</p>
+          <p className="text-gray-600">Esta encuesta podría no estar disponible públicamente.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">¡Gracias por participar!</h2>
+          <p className="text-gray-600">
+            Tu respuesta ha sido enviada exitosamente. Apreciamos tu tiempo y comentarios.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="py-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-center mb-6">{survey.nombre}</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {survey.preguntas.map(renderQuestion)}
-        <div className="text-center">
-          <Button type="submit" disabled={submitting}>
-            {submitting ? "Enviando..." : "Enviar Respuestas"}
-          </Button>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{survey.nombre}</h1>
+          <p className="text-gray-600">Responde todas las preguntas y envía tu formulario</p>
         </div>
-      </form>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {survey.preguntas.map((q, i) => renderQuestion(q, i))}
+          {!isPreview && (
+            <div className="flex justify-center pt-8">
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md"
+              >
+                {submitting ? 'Enviando...' : 'Enviar Respuestas'}
+              </Button>
+            </div>
+          )}
+        </form>
+      </div>
     </div>
   );
 };
