@@ -32,33 +32,31 @@ const SurveyResponse = () => {
   const fetchSurvey = async (surveyId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+
+      let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+      if (!response.ok) {
+        response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+      }
+
       if (response.ok) {
         const data = await response.json();
-        setSurvey(data);
-      } else {
-        // Mock data for development
+
+        // 🔧 Parche cliente: asegurar IDs únicos en preguntas
+        const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
+          ...q,
+          idPregunta: q.idPregunta || `pregunta-${idx}`
+        }));
+
         setSurvey({
-          idEncuesta: surveyId,
-          nombre: "Encuesta de Satisfacción",
-          preguntas: [
-            {
-              idPregunta: "q1",
-              texto: "¿Qué tan probable es que recomiende nuestra empresa a un colega o amigo?",
-              tipo: "escala",
-              items: []
-            },
-            {
-              idPregunta: "q2",
-              texto: "¿Podría explicar un poco más sobre su calificación en la pregunta anterior?",
-              tipo: "texto-largo",
-              items: []
-            }
-          ]
+          ...data,
+          preguntas: preguntasConIds
         });
+      } else {
+        toast.error('Encuesta no encontrada o no disponible públicamente');
       }
     } catch (error) {
       console.error('Error fetching survey:', error);
+      toast.error('Error al cargar la encuesta');
     } finally {
       setLoading(false);
     }
