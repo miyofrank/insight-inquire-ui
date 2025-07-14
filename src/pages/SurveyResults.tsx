@@ -19,7 +19,7 @@ interface Response {
   idEncuesta: string;
   respuestas: Array<{
     idPregunta: string;
-    idItem: string | string[];
+    valor: string | number | string[];
   }>;
   fechaRespuesta: string;
 }
@@ -40,9 +40,7 @@ const SurveyResults: React.FC = () => {
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<
-    'individual' | 'analytics' | 'dashboard'
-  >('individual');
+  const [activeSection, setActiveSection] = useState<'individual' | 'analytics' | 'dashboard'>('individual');
 
   useEffect(() => {
     checkAuth();
@@ -89,7 +87,7 @@ const SurveyResults: React.FC = () => {
         setSurvey(surveyData);
       }
 
-      // 2) Cargar **todas** las respuestas de la encuesta
+      // 2) Cargar todas las respuestas de la encuesta
       const respRes = await fetch(
         `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`,
         {
@@ -205,9 +203,7 @@ const SurveyResults: React.FC = () => {
           </h3>
           <nav className="space-y-2">
             <button
-              onClick={() =>
-                navigate(`/analytics/${survey.idEncuesta}`)
-              }
+              onClick={() => navigate(`/analytics/${survey.idEncuesta}`)}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center space-x-2"
             >
               <RefreshCcw className="w-5 h-5 text-gray-400" />
@@ -223,25 +219,19 @@ const SurveyResults: React.FC = () => {
             >
               <span
                 className={`w-5 h-5 flex items-center justify-center rounded-full ${
-                  activeSection === 'individual'
-                    ? 'bg-blue-100'
-                    : 'bg-gray-100'
+                  activeSection === 'individual' ? 'bg-blue-100' : 'bg-gray-100'
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    activeSection === 'individual'
-                      ? 'bg-blue-600'
-                      : 'bg-gray-400'
+                    activeSection === 'individual' ? 'bg-blue-600' : 'bg-gray-400'
                   }`}
                 />
               </span>
               <span>Respuestas</span>
             </button>
             <button
-              onClick={() =>
-                navigate(`/dashboard/${survey.idEncuesta}`)
-              }
+              onClick={() => navigate(`/dashboard/${survey.idEncuesta}`)}
               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center space-x-2"
             >
               <span className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
@@ -314,10 +304,7 @@ const SurveyResults: React.FC = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {responses.map((r) => (
-                      <tr
-                        key={r.idRespuesta}
-                        className="hover:bg-gray-50"
-                      >
+                      <tr key={r.idRespuesta} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
@@ -325,9 +312,7 @@ const SurveyResults: React.FC = () => {
                           />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(
-                            r.fechaRespuesta
-                          ).toLocaleString('es-ES', {
+                          {new Date(r.fechaRespuesta).toLocaleString('es-ES', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -339,15 +324,13 @@ const SurveyResults: React.FC = () => {
                           const ans = r.respuestas.find(
                             (x) => x.idPregunta === q.idPregunta
                           );
-                          const val = ans?.idItem;
+                          const val = ans?.valor;
                           return (
                             <td
                               key={q.idPregunta}
                               className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                             >
-                              {Array.isArray(val)
-                                ? val.join(', ')
-                                : val ?? '-'}
+                              {Array.isArray(val) ? val.join(', ') : val ?? '-'}
                             </td>
                           );
                         })}
@@ -365,6 +348,4 @@ const SurveyResults: React.FC = () => {
 };
 
 export default SurveyResults;
-
-
 
