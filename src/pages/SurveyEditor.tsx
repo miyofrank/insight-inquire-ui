@@ -319,6 +319,18 @@ const SurveyEditor = () => {
     saveSurvey();
   };
 
+  const handleReorderQuestions = (reorderedQuestions: Question[]) => {
+    if (!survey) return;
+
+    const updatedSurvey = {
+      ...survey,
+      preguntas: reorderedQuestions
+    };
+
+    setSurvey(updatedSurvey);
+    saveSurvey();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -465,6 +477,7 @@ const SurveyEditor = () => {
             selectedQuestion={selectedQuestion}
             onSelectQuestion={setSelectedQuestion}
             onDeleteQuestion={deleteQuestion}
+            onReorderQuestions={handleReorderQuestions}
           />
         </div>
 
