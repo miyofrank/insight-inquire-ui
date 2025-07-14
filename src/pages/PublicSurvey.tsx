@@ -94,14 +94,14 @@ const PublicSurvey = () => {
     setSubmitting(true);
     try {
       const responseData = {
-        respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
+        items: Object.entries(responses).map(([preguntaId, valor]) => ({
           preguntaId,
           valor: Array.isArray(valor) ? valor : valor?.toString() || ''
         }))
       };
 
       const response = await fetch(
-        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey?.idEncuesta}/public`,
+        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${survey.idEncuesta}/public`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
