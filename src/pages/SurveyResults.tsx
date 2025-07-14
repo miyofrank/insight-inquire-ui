@@ -89,7 +89,7 @@ const SurveyResults: React.FC = () => {
 
       // 2) Cargar todas las respuestas de la encuesta
       const respRes = await fetch(
-        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}`,
+        `https://backend-survey-phb2.onrender.com/respuestas/encuesta/${surveyId}/public`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
