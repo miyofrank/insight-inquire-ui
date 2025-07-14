@@ -32,32 +32,38 @@ const PublicSurvey = () => {
   const [isPreview] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      fetchSurvey(id);
-    }
+    if (id) fetchSurvey(id);
   }, [id]);
 
   const fetchSurvey = async (surveyId: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      let response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`);
+      let response = await fetch(
+        `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}/public`
+      );
       if (!response.ok) {
-        response = await fetch(`https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`);
+        response = await fetch(
+          `https://backend-survey-phb2.onrender.com/encuestas/${surveyId}`
+        );
       }
 
-      if (response.ok) {
+      if (!response.ok) {
+        toast.error('Encuesta no encontrada o no disponible públicamente');
+      } else {
         const data = await response.json();
         const preguntasConIds = data.preguntas.map((q: any, idx: number) => ({
-          ...q,
-          idPregunta: q.idPregunta || `pregunta-${idx}`
+          idPregunta: q.idPregunta || `pregunta-${idx}`,
+          texto: q.texto,
+          tipo: q.tipo,
+          items: (q.opciones || []).map((op: any, i: number) => ({
+            idItem: op.idItem || `item-${idx}-${i}`,
+            contenido: op.texto
+          }))
         }));
         setSurvey({
           ...data,
           preguntas: preguntasConIds
         });
-      } else {
-        toast.error('Encuesta no encontrada o no disponible públicamente');
       }
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -68,10 +74,7 @@ const PublicSurvey = () => {
   };
 
   const handleInputChange = (questionId: string, value: any) => {
-    setResponses(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
+    setResponses(prev => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,16 +83,15 @@ const PublicSurvey = () => {
 
     const unanswered = survey.preguntas.filter(q => {
       const r = responses[q.idPregunta];
-      return !r || (Array.isArray(r) && r.length === 0);
+      return r === undefined || (Array.isArray(r) && r.length === 0) || r === '';
     });
-    if (unanswered.length > 0) {
+    if (unanswered.length) {
       toast.error('Por favor responde todas las preguntas');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Enviamos "respuestas" en lugar de "items"
       const payload = {
         respuestas: Object.entries(responses).map(([preguntaId, valor]) => ({
           preguntaId,
@@ -132,7 +134,6 @@ const PublicSurvey = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Texto corto */}
           {question.tipo === 'texto-corto' && (
             <Input
               id={`input-${question.idPregunta}`}
@@ -144,7 +145,6 @@ const PublicSurvey = () => {
             />
           )}
 
-          {/* Texto largo */}
           {question.tipo === 'texto-largo' && (
             <Textarea
               id={`textarea-${question.idPregunta}`}
@@ -152,36 +152,29 @@ const PublicSurvey = () => {
               onChange={e => handleInputChange(question.idPregunta, e.target.value)}
               placeholder="Escribe tu respuesta aquí..."
               rows={4}
-              className="w-full resize-none"
+              className="w-full"
               required
             />
           )}
 
-          {/* Opción múltiple (una respuesta) */}
-          {question.tipo === 'seleccion-multiple' && (
+          {['seleccion-multiple', 'calificacion'].includes(question.tipo) && (
             <RadioGroup
               value={currentValue || ''}
               onValueChange={val => handleInputChange(question.idPregunta, val)}
             >
               {question.items.map(item => (
-                <div
-                  key={`radio-${question.idPregunta}-${item.idItem}`}
-                  className="flex items-center space-x-2"
-                >
+                <div key={`radio-${question.idPregunta}-${item.idItem}`} className="flex items-center space-x-2">
                   <RadioGroupItem
                     id={`radio-${question.idPregunta}-${item.idItem}`}
                     value={item.idItem}
                     checked={currentValue === item.idItem}
                   />
-                  <Label htmlFor={`radio-${question.idPregunta}-${item.idItem}`}>
-                    {item.contenido}
-                  </Label>
+                  <Label htmlFor={`radio-${question.idPregunta}-${item.idItem}`}>{item.contenido}</Label>
                 </div>
               ))}
             </RadioGroup>
           )}
 
-          {/* Opción múltiple (varias respuestas) */}
           {question.tipo === 'casillas' && (
             <div className="space-y-3">
               {question.items.map(item => (
@@ -197,15 +190,12 @@ const PublicSurvey = () => {
                       );
                     }}
                   />
-                  <Label htmlFor={`checkbox-${question.idPregunta}-${item.idItem}`}>
-                    {item.contenido}
-                  </Label>
+                  <Label htmlFor={`checkbox-${question.idPregunta}-${item.idItem}`}>{item.contenido}</Label>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Escala del 1 al 10 */}
           {question.tipo === 'escala' && (
             <div>
               <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
@@ -234,7 +224,6 @@ const PublicSurvey = () => {
             </div>
           )}
 
-          {/* NPS (0-10) */}
           {question.tipo === 'nps' && (
             <div>
               <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
@@ -260,7 +249,6 @@ const PublicSurvey = () => {
             </div>
           )}
 
-          {/* Desplegable */}
           {question.tipo === 'desplegable' && (
             <select
               id={`select-${question.idPregunta}`}
