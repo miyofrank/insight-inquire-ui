@@ -330,14 +330,9 @@ const SurveyEditor = () => {
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
               </Button>
-                <div className="flex items-center space-x-4">
-                  <div className="w-[150px] h-auto">
-                    <img
-                      src="https://eficientis.com/wp-content/uploads/2024/03/image-18.webp"
-                      alt="Logo Eficientis"
-                      className="w-full h-auto object-contain"
-                    />
-                  </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">E</span>
                 </div>
                 {isEditingName ? (
                   <div className="flex items-center space-x-2">
