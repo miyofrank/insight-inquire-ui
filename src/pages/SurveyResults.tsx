@@ -91,24 +91,31 @@ const mapValueToLabel = (preguntaId: string, valor: string | number | string[]) 
   const pregunta = survey.preguntas.find((q) => q.idPregunta === preguntaId);
   if (!pregunta) return valor;
 
-  if (pregunta.opciones && pregunta.opciones.length > 0) {
-    const renderValor = (v: string | number) => {
-      const opcion = pregunta.opciones?.find((o) => 
-        o.idOpcion === v || o.idItem === v || o.texto === v || o.contenido === v
-      );
-
-      return opcion ? opcion.texto || opcion.contenido : v;  // Fallback al valor bruto
-    };
-
-    if (Array.isArray(valor)) {
-      return valor.map(renderValor).join(', ');
-    } else {
-      return renderValor(valor);
-    }
+  // Si no hay opciones, devuelve el valor tal cual
+  if (!pregunta.opciones || pregunta.opciones.length === 0) {
+    return valor;
   }
 
-  return valor;
+  // Función auxiliar para buscar el label correcto
+  const renderValor = (v: string | number) => {
+    const match = pregunta.opciones.find((o) => 
+      o.idOpcion === v || 
+      o.idItem === v || 
+      o.texto === v || 
+      o.contenido === v
+    );
+
+    // Devuelve el texto de la opción encontrada o el valor bruto
+    return match ? (match.texto || match.contenido || v) : v;
+  };
+
+  if (Array.isArray(valor)) {
+    return valor.map(renderValor).join(', ');
+  } else {
+    return renderValor(valor);
+  }
 };
+
 
 
 
