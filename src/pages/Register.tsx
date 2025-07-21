@@ -1,41 +1,51 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
 import { Eye, EyeOff } from 'lucide-react';
 
+const registerSchema = z.object({
+  name: z.string()
+    .min(6, 'El usuario debe tener al menos 6 caracteres')
+    .regex(/^[a-zA-Z0-9\s._-]+$/, 'El usuario contiene caracteres no permitidos'),
+  email: z.string()
+    .min(1, 'El email es obligatorio')
+    .email('Formato de email inválido'),
+  password: z.string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+      'La contraseña debe contener al menos una mayúscula, una minúscula, un número y un símbolo especial'),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
+
 const Register = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!name || !email || !password || !confirmPassword) {
-      toast.error('Por favor, completa todos los campos');
-      return;
-    }
+  const form = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
-    if (password !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
+  const handleRegister = async (values: z.infer<typeof registerSchema>) => {
     setLoading(true);
     
     try {
@@ -45,9 +55,9 @@ const Register = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
-          email,
-          password
+          name: values.name,
+          email: values.email,
+          password: values.password
         }),
       });
 
@@ -83,93 +93,118 @@ const Register = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nombre completo</Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre completo"
-                required
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Usuario</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Mínimo 6 caracteres, sin caracteres especiales"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
 
-            <div>
-              <Label htmlFor="email">Correo electrónico</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correo electrónico</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="tu@email.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div>
-              <Label htmlFor="password">Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div>
-              <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirma tu contraseña"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirmar contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirma tu contraseña"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Button 
-              type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </Button>
-          </form>
+              <Button 
+                type="submit" 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={loading}
+              >
+                {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+              </Button>
+            </form>
+          </Form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
