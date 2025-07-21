@@ -100,7 +100,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
                 <Icon className="w-6 h-6 text-blue-600 flex-shrink-0" />
                 <div className="text-center w-full">
                   <div className="text-sm font-medium text-gray-900 break-words leading-tight">{type.name}</div>
-                  <div className="text-xs text-gray-500 break-words leading-tight">{type.description}</div>
+                  <div className="text-xs text-gray-500 break-words leading-tight whitespace-normal">{type.description}</div>
                 </div>
               </div>
             </Button>
