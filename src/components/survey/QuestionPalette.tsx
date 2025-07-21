@@ -94,13 +94,13 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({ onAddQuestion 
               key={type.id}
               variant="outline"
               onClick={() => onAddQuestion(type.id)}
-              className="h-auto p-3 text-left hover:bg-blue-50 hover:border-blue-300"
+              className="h-auto p-3 text-left hover:bg-blue-50 hover:border-blue-300 overflow-hidden"
             >
-              <div className="flex flex-col items-center space-y-2">
-                <Icon className="w-6 h-6 text-blue-600" />
-                <div className="text-center">
-                  <div className="text-sm font-medium text-gray-900">{type.name}</div>
-                  <div className="text-xs text-gray-500">{type.description}</div>
+              <div className="flex flex-col items-center space-y-2 w-full">
+                <Icon className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                <div className="text-center w-full">
+                  <div className="text-sm font-medium text-gray-900 truncate">{type.name}</div>
+                  <div className="text-xs text-gray-500 break-words leading-tight">{type.description}</div>
                 </div>
               </div>
             </Button>
